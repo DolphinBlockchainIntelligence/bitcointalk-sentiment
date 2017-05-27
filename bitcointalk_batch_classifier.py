@@ -2,6 +2,8 @@ import getopt
 import sys
 import os
 import bitcointalk_sentiment_classifier
+import json
+import datetime
 
 def main(argv):
     input_folder = ''
@@ -30,11 +32,35 @@ def main(argv):
 
 
 def batch_classify(input_folder,model_file,vectorizer_file,output_folder):
-    for root, dirs, files in os.walk(input_folder):
-        for name in files:
-            input_filename = input_folder + '\\' + name
-            bitcointalk_sentiment_classifier.classify(input_filename,model_file,vectorizer_file,output_folder)
 
+    try:
+        with open('lockSentiment.txt','r') as f:
+            f.read()
+    except:
+        sys.exit()
+
+    with open('announceList.json','r') as f:
+        parsedList = json.load(f)
+    with open('sentimentList.json','r') as f:
+        sentimentList = json.load(f)
+
+    toClassify = []
+
+    for topicId in parsedList.keys():
+        if topicId not in sentimentList.keys():
+            toClassify.append(topicId)
+        elif datetime.datetime.strptime(parsedList['topicId']['dateTimeParsing'],'%Y.%m.%d %H:%M') >= datetime.datetime.strptime(sentimentList['topicId']['dateTimeSentiment'],'%Y.%m.%d %H:%M'):
+            toClassify.append(topicId)
+
+    currentTime = datetime.datetime.now()
+
+    for topicId in toClassify:
+        filename = '{}\\{}.json'.format(input_folder, topicId)
+        bitcointalk_sentiment_classifier.classify(filename, model_file, vectorizer_file, output_folder)
+        sentimentList[topicId] = {'dateTimeSentiment': currentTime.strftime('%Y.%m.%d %H:%M')}
+
+    with open('sentimentList.json','w') as f:
+        json.dump(sentimentList,f)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
