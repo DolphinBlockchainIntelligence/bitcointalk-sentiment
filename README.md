@@ -1,1 +1,2 @@
-# bitcointalk-sentiment
+# Dolphin Bitcointalk Sentiment Classifier
+
