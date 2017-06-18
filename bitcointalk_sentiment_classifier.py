@@ -40,8 +40,7 @@ def classify(input_file,model_file,vectorizer_file,output_folder):
 
 
     topic_matrix = tfidf.transform(topic_df[3])
-    topic_df['Sentiment'] = model.predict_proba(topic_matrix)[:,1]
-    topic_df['Sentiment'] = topic_df['Sentiment'].apply(lambda x: 0 if x<0.33 else (1 if x<0.66 else 2))
+    topic_df['Sentiment'] = model.predict(topic_matrix)
 
     def checkTimeFormat(time_string):
         try:
