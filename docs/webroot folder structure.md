@@ -11,7 +11,7 @@
 
 # Files structure
 ## announceList.json
-> Sample:
+`Sample:`
 ```javascript
 {
     "1571738": {
@@ -39,9 +39,9 @@
 }
 ```
 
-## S<topicId>.json
+## S\{topicId\}.json
 > contains number of sentiments for each category (negative/neutral/positive)
-> Sample:
+`Sample:`
 ```javascript
 {
    "2015-03-24":{
@@ -57,9 +57,9 @@
 }
 ```
 
-## D<topicId>.json
+## D\{topicId\}.json
 > "Sentiment" gets values: 0 - negative, 1 - neutral, 2 - positive
-> Sample:
+`Sample`
 ```javascript
 {
    "10870994":{
