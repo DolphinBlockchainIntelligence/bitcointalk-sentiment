@@ -33,7 +33,11 @@ def classify(input_file,model_file, output_folder):
     with open(model_file,'rb') as file:
         model = pickle.load(file)
 
-    topic_df['Sentiment'] = model.predict(topic_df[3])
+    topic_df['smoothed_text'] = topic_df['text'].apply(lambda x: x + ' <smoothingplaceholder>')
+
+    topic_df['Sentiment'] = model.predict(topic_df['smoothed_text'])
+
+    topic_df = topic_df.drop(['smoothed_text'], axis=1)
 
     topic_name = input_file.split('\\')[1]
     topic_name = topic_name.split('.')[0]

@@ -31,8 +31,7 @@ def main(argv):
 def batch_classify(input_folder,model_file,output_folder):
 
     try:
-        with open('lockSentiment.txt','w') as f:
-            pass
+        f = open('lockSentiment.txt','w')
     except:
         print "Another process is working. Exiting."
         sys.exit(1)

@@ -31,11 +31,14 @@ def main(argv):
 
 def classify(input_file,model_file,output_folder):
 
-    topic_df = pd.read_json(input_file,orient='index')
-    with open(model_file,'rb') as file:
+    topic_df = pd.read_json(input_file, orient='index', convert_dates=False)
+
+    with open(model_file, 'rb') as file:
         model = pickle.load(file)
 
-    topic_df['Sentiment'] = model.predict(topic_df[3])
+    topic_df['text'] = topic_df['text'].apply(lambda x: x + ' <smoothingplaceholder>')
+
+    topic_df['Sentiment'] = model.predict(topic_df['text'])
 
     def checkTimeFormat(time_string):
         try:
@@ -44,10 +47,10 @@ def classify(input_file,model_file,output_folder):
         except ValueError:
             return False
 
-    topic_df = topic_df[topic_df[2].apply(lambda x: checkTimeFormat(x))]
-    topic_df[2] = topic_df[2].apply(lambda x: datetime.strptime(x,'%B %d, %Y, %I:%M:%S %p').date())
-    topic_df.rename(columns={2: 'Date'},inplace=True)
-    day_groups = topic_df.groupby(['Date'])
+    topic_df['date'] = topic_df['date'].apply(str)
+    topic_df = topic_df[topic_df['date'].apply(lambda x: checkTimeFormat(x))]
+    topic_df['date'] = topic_df['date'].apply(lambda x: datetime.strptime(x,'%B %d, %Y, %I:%M:%S %p').date())
+    day_groups = topic_df.groupby(['date'])
 
     dates = []
     positives = []
