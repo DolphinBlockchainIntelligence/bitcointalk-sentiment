@@ -34,10 +34,11 @@ def main(argv):
 def batch_classify(input_folder,model_file,vectorizer_file,output_folder):
 
     try:
-        with open('lockSentiment.txt','r') as f:
-            f.read()
+        with open('lockSentiment.txt','w') as f:
+            pass
     except:
-        sys.exit()
+        print "Another process is working. Exiting."
+        sys.exit(1)
 
     with open('announceList.json','r') as f:
         parsedList = json.load(f)
