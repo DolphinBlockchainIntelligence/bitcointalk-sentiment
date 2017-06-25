@@ -1,17 +1,17 @@
-#Web server root folder structure (beta.dolphin.bi)
-*<webserver root>
-  * <static>
-    * <data>
-      * announceList.json
-      * sentimentList.json
-      * <btt-sentiments>
-        * S<topic ID>.json
-        * D<topic ID>.json
+# Web server root folder structure (beta.dolphin.bi)
+* \[webserver root\]
+    * \[static\]
+        * \[data\]
+            * announceList.json
+            * sentimentList.json
+            * \[btt-sentiments>
+                * S\{topic ID\}.json
+                * D\{topic ID\}.json
 
 
 # Files structure
 ## announceList.json
-Sample:
+> Sample:
 ```javascript
 {
     "1571738": {
@@ -40,8 +40,8 @@ Sample:
 ```
 
 ## S<topicId>.json
-> contains number of sentiments for each category (negative/neutral/positive)*
-Sample:
+> contains number of sentiments for each category (negative/neutral/positive)
+> Sample:
 ```javascript
 {
    "2015-03-24":{
@@ -59,7 +59,7 @@ Sample:
 
 ## D<topicId>.json
 > "Sentiment" gets values: 0 - negative, 1 - neutral, 2 - positive
-Sample:
+> Sample:
 ```javascript
 {
    "10870994":{
