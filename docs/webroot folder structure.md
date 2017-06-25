@@ -1,10 +1,10 @@
 # Web server root folder structure (beta.dolphin.bi)
-* \[webserver root\]
-    * \[static\]
-        * \[data\]
+* `webserver root`
+    * `static`
+        * `data`
             * announceList.json
             * sentimentList.json
-            * \[btt-sentiments>
+            * `btt-sentiments`
                 * S\{topic ID\}.json
                 * D\{topic ID\}.json
 
