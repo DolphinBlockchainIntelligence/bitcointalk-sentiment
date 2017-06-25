@@ -1,16 +1,18 @@
-Web server root folder structure (beta.dolphin.bi)
-<webserver root>
-- <static>
-- - <data>
-- - - announceList.json
-- - - sentimentList.json
-- - - <btt-sentiments>
-- - - - S<topic ID>.json
-- - - - D<topic ID>.json
+#Web server root folder structure (beta.dolphin.bi)
+*<webserver root>
+  * <static>
+    * <data>
+      * announceList.json
+      * sentimentList.json
+      * <btt-sentiments>
+        * S<topic ID>.json
+        * D<topic ID>.json
 
-File structure
-announceList.json
-Example:
+
+# Files structure
+## announceList.json
+Sample:
+```javascript
 {
     "1571738": {
         "topicUrl": "https://bitcointalk.org/index.php?topic=1571738.0", 
@@ -35,11 +37,12 @@ Example:
         "topicStarter": "CryptoIsland"
     }
 }
+```
 
-
-S<topicId>.json
-contains number of sentiments for each category (negative/neutral/positive)
-Example:
+## S<topicId>.json
+> contains number of sentiments for each category (negative/neutral/positive)*
+Sample:
+```javascript
 {
    "2015-03-24":{
       "negative":2,
@@ -52,10 +55,12 @@ Example:
       "positive":0
    }
 }
+```
 
-D<topicId>.json
-"Sentiment" gets values: 0 - negative, 1 - neutral, 2 - positive
-Example:
+## D<topicId>.json
+> "Sentiment" gets values: 0 - negative, 1 - neutral, 2 - positive
+Sample:
+```javascript
 {
    "10870994":{
       "date":"March 24, 2015, 02:00:02 PM",
@@ -79,3 +84,4 @@ Example:
       "Sentiment":2
    }
 }
+```
