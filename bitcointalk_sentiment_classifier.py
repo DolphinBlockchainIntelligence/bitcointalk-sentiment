@@ -36,11 +36,17 @@ def classify(input_file,model_file,output_folder):
     with open(model_file, 'rb') as file:
         model = pickle.load(file)
 
+<<<<<<< HEAD
     topic_df['smoothed_text'] = topic_df['text'].apply(lambda x: x + ' <smoothingplaceholder>')
 
     topic_df['Sentiment'] = model.predict(topic_df['smoothed_text'])
 
     topic_df.drop(labels=['smoothed_text'], axis=1, inplace=True)
+=======
+    topic_df['text'] = topic_df['text'].apply(lambda x: x + ' <smoothingplaceholder>')
+
+    topic_df['Sentiment'] = model.predict(topic_df['text'])
+>>>>>>> 709e6fa35abd6dc8dc2ea8d5d29844febbbd04ef
 
     def checkTimeFormat(time_string):
         try:
