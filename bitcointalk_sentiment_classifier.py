@@ -27,9 +27,9 @@ def main(argv):
         elif opt == '-f':
             output_folder = arg
 
-    classify(input_file,model_file,output_folder)
+    classify(input_file, model_file, output_folder)
 
-def classify(input_file,model_file,output_folder):
+def classify(input_file, model_file, output_folder):
 
     topic_df = pd.read_json(input_file, orient='index', convert_dates=False)
 

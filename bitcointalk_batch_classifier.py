@@ -10,12 +10,13 @@ def main(argv):
     output_folder = ''
     announce_json = ''
     sentiment_json = ''
-    try:
 
+    try:
         opts, args = getopt.getopt(argv, "hi:m:f:a:s:")
     except getopt.GetoptError:
         print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON>')
         sys.exit(2)
+
     for opt, arg in opts:
         if opt == '-h':
             print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON>')
@@ -37,14 +38,14 @@ def main(argv):
 def batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json):
 
     try:
-        f = open('lockSentiment.txt','w')
+        f = open('lockSentiment.txt', 'w')
     except:
         print('Another process is working. Exiting.')
         sys.exit(1)
 
-    with open(announce_json,'r') as f:
+    with open(announce_json, 'r') as f:
         parsedList = json.load(f)
-    with open(sentiment_json,'r') as f:
+    with open(sentiment_json, 'r') as f:
         sentimentList = json.load(f)
 
     toClassify = []
@@ -52,7 +53,8 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
     for topicId in parsedList.keys():
         if topicId not in sentimentList.keys():
             toClassify.append(topicId)
-        elif datetime.datetime.strptime(parsedList['topicId']['dateTimeParsing'],'%Y.%m.%d %H:%M') >= datetime.datetime.strptime(sentimentList['topicId']['dateTimeSentiment'],'%Y.%m.%d %H:%M'):
+        elif datetime.datetime.strptime(parsedList['topicId']['dateTimeParsing'], '%Y.%m.%d %H:%M') >=\
+                datetime.datetime.strptime(sentimentList['topicId']['dateTimeSentiment'], '%Y.%m.%d %H:%M'):
             toClassify.append(topicId)
 
     currentTime = datetime.datetime.now()
@@ -62,8 +64,8 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
         bitcointalk_sentiment_classifier.classify(filename, model_file, output_folder)
         sentimentList[topicId] = {'dateTimeSentiment': currentTime.strftime('%Y.%m.%d %H:%M')}
 
-    with open('sentimentList.json','w') as f:
-        json.dump(sentimentList,f)
+    with open('sentimentList.json', 'w') as f:
+        json.dump(sentimentList, f)
 
     f.close()
 
