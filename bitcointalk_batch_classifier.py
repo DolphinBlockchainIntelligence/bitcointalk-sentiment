@@ -8,40 +8,42 @@ import datetime
 def main(argv):
     input_folder = ''
     model_file = ''
-    vectorizer_file = ''
     output_folder = ''
+    announce_json = ''
+    sentiment_json = ''
     try:
-        opts, args = getopt.getopt(argv, "hi:m:v:f:")
+        opts, args = getopt.getopt(argv, "hi:m:f:a:s:")
     except getopt.GetoptError:
-        print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -v <vectorizer> -f <output folder>')
+        print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -v <vectorizer> -f <output folder>')
+            print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON>')
             sys.exit()
         elif opt == '-i':
             input_folder = arg
         elif opt == '-m':
             model_file = arg
-        elif opt == '-v':
-            vectorizer_file = arg
         elif opt == '-f':
             output_folder = arg
+        elif opt == '-a':
+            announce_json = arg
+        elif opt == '-s':
+            sentiment_json = arg
 
-    batch_classify(input_folder,model_file,vectorizer_file,output_folder)
+    batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json)
 
 
-def batch_classify(input_folder,model_file,vectorizer_file,output_folder):
+def batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json):
 
     try:
-        with open('lockSentiment.txt','r') as f:
-            f.read()
+        f = open('lockSentiment.txt','w')
     except:
         sys.exit()
 
-    with open('announceList.json','r') as f:
+    with open(announce_json,'r') as f:
         parsedList = json.load(f)
-    with open('sentimentList.json','r') as f:
+    with open(sentiment_json,'r') as f:
         sentimentList = json.load(f)
 
     toClassify = []
@@ -56,11 +58,13 @@ def batch_classify(input_folder,model_file,vectorizer_file,output_folder):
 
     for topicId in toClassify:
         filename = '{}\\{}.json'.format(input_folder, topicId)
-        bitcointalk_sentiment_classifier.classify(filename, model_file, vectorizer_file, output_folder)
+        bitcointalk_sentiment_classifier.classify(filename, model_file, output_folder)
         sentimentList[topicId] = {'dateTimeSentiment': currentTime.strftime('%Y.%m.%d %H:%M')}
 
     with open('sentimentList.json','w') as f:
         json.dump(sentimentList,f)
+
+    f.close()
 
 if __name__ == '__main__':
     main(sys.argv[1:])

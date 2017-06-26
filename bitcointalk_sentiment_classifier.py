@@ -4,43 +4,43 @@ import json
 import getopt
 import sys
 import pickle
+import warnings
 
 def main(argv):
+    warnings.filterwarnings('ignore', category=DeprecationWarning)
     input_file = ''
     model_file = ''
-    vectorizer_file = ''
     output_folder = ''
     try:
-        opts, args = getopt.getopt(argv, "hi:m:v:f:")
+        opts, args = getopt.getopt(argv, "hi:m:f:")
     except getopt.GetoptError:
-        print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -v <vectorizer> -f <output folder>')
+        print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -v <vectorizer> -f <output folder>')
+            print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder>')
             sys.exit()
         elif opt == '-i':
             input_file = arg
         elif opt == '-m':
             model_file = arg
-        elif opt == '-v':
-            vectorizer_file = arg
         elif opt == '-f':
             output_folder = arg
 
-    classify(input_file,model_file,vectorizer_file,output_folder)
+    classify(input_file,model_file,output_folder)
 
-def classify(input_file,model_file,vectorizer_file,output_folder):
+def classify(input_file,model_file,output_folder):
 
-    topic_df = pd.read_json(input_file,orient='index')
-    with open(model_file,'rb') as file:
+    topic_df = pd.read_json(input_file, orient='index', convert_dates=False)
+
+    with open(model_file, 'rb') as file:
         model = pickle.load(file)
-    with open(vectorizer_file,'rb') as file:
-        tfidf = pickle.load(file)
 
+    topic_df['smoothed_text'] = topic_df['text'].apply(lambda x: x + ' <smoothingplaceholder>')
 
-    topic_matrix = tfidf.transform(topic_df[3])
-    topic_df['Sentiment'] = model.predict(topic_matrix)
+    topic_df['Sentiment'] = model.predict(topic_df['smoothed_text'])
+
+    topic_df.drop(labels=['smoothed_text'], axis=1, inplace=True)
 
     def checkTimeFormat(time_string):
         try:
@@ -49,10 +49,10 @@ def classify(input_file,model_file,vectorizer_file,output_folder):
         except ValueError:
             return False
 
-    topic_df = topic_df[topic_df[2].apply(lambda x: checkTimeFormat(x))]
-    topic_df[2] = topic_df[2].apply(lambda x: datetime.strptime(x,'%B %d, %Y, %I:%M:%S %p').date())
-    topic_df.rename(columns={2: 'Date'},inplace=True)
-    day_groups = topic_df.groupby(['Date'])
+    topic_df['date'] = topic_df['date'].apply(str)
+    topic_df = topic_df[topic_df['date'].apply(lambda x: checkTimeFormat(x))]
+    topic_df['date'] = topic_df['date'].apply(lambda x: datetime.strptime(x,'%B %d, %Y, %I:%M:%S %p').date())
+    day_groups = topic_df.groupby(['date'])
 
     dates = []
     positives = []
@@ -86,9 +86,13 @@ def classify(input_file,model_file,vectorizer_file,output_folder):
     topic_name = input_file.split('\\')[1]
     topic_name = topic_name.split('.')[0]
 
-    with open('{}\{}_sentiment_{}.json'.format(output_folder,topic_name,str(datetime.now().date())),'w') as f:
-        json.dump(json_sentiment,f,sort_keys=True,ensure_ascii=False)
-    print('Saved to {}\{}_sentiment_{}.json'.format(output_folder,topic_name,str(datetime.now().date())))
+    with open('{}\S{}.json'.format(output_folder, topic_name), 'w') as f:
+        json.dump(json_sentiment, f, sort_keys=True, ensure_ascii=False)
+    print('Saved sentiment counts to {}\S{}.json'.format(output_folder, topic_name))
+
+    with open('{}\D{}.json'.format(output_folder, topic_name), 'w') as f:
+        topic_df.to_json(f, orient='index')
+    print('Saved posts with sentiments to {}\S{}.json'.format(output_folder, topic_name))
 
 if __name__ == "__main__":
    main(sys.argv[1:])
