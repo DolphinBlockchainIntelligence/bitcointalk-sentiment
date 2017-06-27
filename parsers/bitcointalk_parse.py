@@ -156,7 +156,9 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts):
     except Exception, e:
 	print >> sys.stderr, "Exception parsing topic page posts, url: ", url
 	print >> sys.stderr, "Exception: %s" % str(e)
-	#sys.exit(1)
+	f = open("error_page.dmp", "w")
+	f.write(r.text)
+	f.close()
 	raise
 
     # number of posts 
