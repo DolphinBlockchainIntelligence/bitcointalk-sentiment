@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import datetime
+from datetime import timedelta
 import json
 import getopt
 import sys
@@ -28,6 +29,39 @@ def main(argv):
             output_folder = arg
 
     classify(input_file, model_file, output_folder)
+
+
+def transform_sentiment_dict(sentiment_dict):
+    negative = []
+    neutral = []
+    positive = []
+
+    sorted_dates = sorted(list(sentiment_dict.keys()))
+    point_start = datetime.strptime(sorted_dates[0], '%Y-%m-%d').timestamp()
+    dates_parsed = [datetime.strptime(date, '%Y-%m-%d') for date in sorted_dates]
+
+    date = datetime.strptime(sorted_dates[0], '%Y-%m-%d')
+    while date <= dates_parsed[-1]:
+        if date in dates_parsed:
+            negative.append(sentiment_dict[str(date.date())]['negative'])
+            neutral.append(sentiment_dict[str(date.date())]['neutral'])
+            positive.append(sentiment_dict[str(date.date())]['positive'])
+        else:
+            negative.append(0)
+            neutral.append(0)
+            positive.append(0)
+        date += timedelta(days=1)
+
+    new_dict = {'heading': '',
+                'chart':
+                    {'negative': negative,
+                     'neutral': neutral,
+                     'positive': positive},
+                'pointStart': int(point_start*100)
+                }
+
+    return(new_dict)
+
 
 def classify(input_file, model_file, output_folder):
 
@@ -87,12 +121,12 @@ def classify(input_file, model_file, output_folder):
     topic_name = topic_name.split('.')[0]
 
     with open('{}\S{}.json'.format(output_folder, topic_name), 'w') as f:
-        json.dump(json_sentiment, f, sort_keys=True, ensure_ascii=False)
+        json.dump(transform_sentiment_dict(json_sentiment), f, ensure_ascii=False)
     print('Saved sentiment counts to {}\S{}.json'.format(output_folder, topic_name))
 
     with open('{}\D{}.json'.format(output_folder, topic_name), 'w') as f:
         topic_df.to_json(f, orient='index')
-    print('Saved posts with sentiments to {}\S{}.json'.format(output_folder, topic_name))
+    print('Saved posts with sentiments to {}\D{}.json'.format(output_folder, topic_name))
 
 if __name__ == "__main__":
    main(sys.argv[1:])
