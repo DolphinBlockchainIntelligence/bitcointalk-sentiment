@@ -60,15 +60,17 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
 	# views:
 	views = "".join(cols[5].xpath('text()')).strip()
 
-	#icoList = {"topicId": topicID, "theme": theme, "topicUrl": topicUrl, "topicStarter": topicStarterName, 
-	#           "topicStarterUrl": topicStarterURL, "NumReplies": replies, "NumViews": views}
+	icoList[topicID] = {"topicId"          : topicID, 
+	                    "announce"         : theme, 
+	                    "topicUrl"         : topicUrl, 
+	                    "topicStarter"     : topicStarterName, 
+                            "topicStarterUrl"  : topicStarterURL, 
+	                    "NumReplies"       : replies, 
+	                    "NumViews"         : views, 
+	                    "sourceJson"       : topicID+'.json',
+                            "dateTimeParsing"  : "", 
+	                    "DateTimeLastPost" : "" }
 
-	#newIco = {topicID:""}
-	#newIco[topicID] = {"topicId": topicID, "announce": theme, "topicUrl": topicUrl, "topicStarter": topicStarterName, 
-	icoList[topicID] = {"topicId": topicID, "announce": theme, "topicUrl": topicUrl, "topicStarter": topicStarterName, 
-                        "topicStarterUrl": topicStarterURL, "NumReplies": replies, "NumViews": views, "sentimJson": topicID+'.json',
-                        "dateTimeParsing": "" }
-	#icoList.update(newIco)
 
     return
 
@@ -138,6 +140,7 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts):
 	#r = requests.get(url, headers = headers)
 	while True:
 	    try:
+		dateTimeOfRequest = localtime()
 		r = requests.get(url, headers = headers)
 		break
 	    except exceptions.BaseException as e:
@@ -202,7 +205,10 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts):
 		# if yes then insert '<deleted>' for correct work of classifier
 		if len(postText) == 0:
 		    postText = '<deleted>'
-		    
+	        
+		if postDate[0:4] == ' at ':
+		    postDate = strftime("%B %d, %Y, ", dateTimeOfRequest) + postDate[4:]
+		
 		topicPosts[postID] = { "topicId" : topicID, 
 		                       "user"    : postUserName, 
 		                       "date"    : postDate, 
@@ -311,10 +317,29 @@ try:
 except:
     icoListOld = {}   
 
+'''
+# read bootstrap.json to append announcements or ico discussions
+try:
+    with open(DATA_FILES_DIR + 'bootstrap.json', 'r') as fBootstrap:
+	bootstrapList = json.load(fBootstrap)
+    fBootstrap.close
+except:
+    bootstrapList = {}
+
+# append topics from bootstrap to icoList:
+for bootTopic in bootstrapList:
+    try:
+	dummy = icoList[bootTopic]["topicId"]
+    except:
+	icoList[bootTopic]["topicId"]
+'''    
+        
+
 # reparse changed ICOs with saving all files on each iteration
 # because of possible script crash or btt start blocking access
-# we will write to announceList.json only what has been successfully parsed 
+# we will update to announceList.json only what has been successfully parsed
 # and saved to corresponding <topicId>.json
+# but interim post data is dumped to <topicId>.json each PARSED_PAGES_SAVE_POSTS pages
 icoListNum = len(icoList)
 icoListCurr = 1
 for ico in icoList:
@@ -324,6 +349,7 @@ for ico in icoList:
 
     # icoList[ico]["NumReplies"]  vs  count rows in json
     # read all <topicId>.json if exits
+    # so we proceed to parse topic pages staring from last <topicId>.json dump
     try:
 	with open(DATA_FILES_DIR + ico + '.json', 'r') as fTopicPosts:
 	    topicPosts = json.load(fTopicPosts)
@@ -378,6 +404,11 @@ for ico in icoList:
     # update old announce list
     icoListOld[ico] = icoList[ico]
     icoListOld[ico]["dateTimeParsing"] = topicParsingDT
+    # set last comment date
+    for lastPost in topicPosts:
+	pass
+    icoListOld[ico]["DateTimeLastPost"] = topicPosts[lastPost]["date"]
+    
     with open(DATA_FILES_DIR + 'announceList.json', 'w') as fAnnounceList: 
 	json.dump(icoListOld, fAnnounceList, indent=4)
     fAnnounceList.close
