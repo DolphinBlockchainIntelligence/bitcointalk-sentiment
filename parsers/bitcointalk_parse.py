@@ -3,6 +3,7 @@ import sys, requests, pandas, json, re, time, csv, math, exceptions, gc, getopt
 from lxml import html, etree
 from HTMLParser import HTMLParser
 from time import gmtime, strftime, localtime
+from datetime import datetime
 
 TOPICS_PER_PAGE         = 20
 PARSING_SLEEP           = 3
@@ -405,9 +406,13 @@ for ico in icoList:
     icoListOld[ico] = icoList[ico]
     icoListOld[ico]["dateTimeParsing"] = topicParsingDT
     # set last comment date
-    for lastPost in topicPosts:
-	pass
-    icoListOld[ico]["DateTimeLastPost"] = topicPosts[lastPost]["date"]
+    maxParsedDateTime = ''
+    for post in topicPosts:
+	parsedDateTime = datetime.strptime(topicPosts[post]["date"], '%B %d, %Y, %I:%M:%S %p').strftime("%Y-%m-%d %H:%M:%S")
+	if maxParsedDateTime < parsedDateTime:
+	    maxParsedDateTime = parsedDateTime
+    
+    icoListOld[ico]["DateTimeLastPost"] = maxParsedDateTime
     
     with open(DATA_FILES_DIR + 'announceList.json', 'w') as fAnnounceList: 
 	json.dump(icoListOld, fAnnounceList, indent=4)
