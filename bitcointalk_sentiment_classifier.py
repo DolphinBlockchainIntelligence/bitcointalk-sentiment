@@ -12,10 +12,11 @@ def main(argv):
     input_file = ''
     model_file = ''
     output_folder = ''
+    output_posts = ''
     try:
-        opts, args = getopt.getopt(argv, "hi:m:f:")
+        opts, args = getopt.getopt(argv, "hi:m:f:n:")
     except getopt.GetoptError:
-        print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder>')
+        print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder> -n <number of output posts [number|fraction|all]>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -27,8 +28,10 @@ def main(argv):
             model_file = arg
         elif opt == '-f':
             output_folder = arg
+        elif opt == '-n':
+            output_posts = arg
 
-    classify(input_file, model_file, output_folder)
+    classify(input_file, model_file, output_folder, output_posts)
 
 
 def transform_sentiment_dict(sentiment_dict):
@@ -63,7 +66,7 @@ def transform_sentiment_dict(sentiment_dict):
     return(new_dict)
 
 
-def classify(input_file, model_file, output_folder):
+def classify(input_file, model_file, output_folder, output_posts):
 
     topic_df = pd.read_json(input_file, orient='index', convert_dates=False)
 
@@ -120,12 +123,37 @@ def classify(input_file, model_file, output_folder):
     topic_name = input_file.split('\\')[1]
     topic_name = topic_name.split('.')[0]
 
+    topic_df['date'].apply(str)
+    topic_df.sort_values(by='date', ascending=False, inplace=True)
+
+    try:
+        posts_count = int(output_posts)
+        if posts_count > len(topic_df):
+            print('The number in the argument is bigger than actual number of posts. Outputting all posts.')
+            topic_df_slice = topic_df
+        else:
+            topic_df_slice = topic_df[0:posts_count]
+    except:
+        try:
+            posts_count = float(output_posts)
+            if posts_count > 1:
+                print('The fraction in the argument is bigger than 1. Outputting all posts.')
+                topic_df_slice = topic_df
+            else:
+                topic_df_slice = topic_df[0:int(posts_count*len(topic_df))]
+        except:
+            topic_df_slice = topic_df
+            if output_posts != 'all':
+                print('Invalid number of posts value. Outputting all posts.')
+
+
+
     with open('{}\S{}.json'.format(output_folder, topic_name), 'w') as f:
         json.dump(transform_sentiment_dict(json_sentiment), f, ensure_ascii=False)
     print('Saved sentiment counts to {}\S{}.json'.format(output_folder, topic_name))
 
     with open('{}\D{}.json'.format(output_folder, topic_name), 'w') as f:
-        topic_df.to_json(f, orient='index')
+        topic_df_slice.to_json(f, orient='index')
     print('Saved posts with sentiments to {}\D{}.json'.format(output_folder, topic_name))
 
 if __name__ == "__main__":
