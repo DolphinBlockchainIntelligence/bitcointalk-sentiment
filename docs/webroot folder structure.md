@@ -40,20 +40,17 @@
 ```
 
 ## S\{topicId\}.json
-> contains number of sentiments for each category (negative/neutral/positive)
+> contains number of sentiments for each category (negative/neutral/positive) starting from date specified as a unix timestamp in attribute `pointStart`
 `Sample:`
 ```javascript
 {
-   "2015-03-24":{
-      "negative":2,
-      "neutral":12,
-      "positive":0
-   },
-   "2015-03-25":{
-      "negative":0,
-      "neutral":4,
-      "positive":0
-   }
+ "heading": "The Project",
+ "chart": {
+  "negative": [6, 15, 12],
+  "neutral": [7, 4, 9],
+  "positive": [3, 1, 8]
+ },
+ "pointStart": 1456790400000
 }
 ```
 
