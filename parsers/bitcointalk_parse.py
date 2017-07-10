@@ -6,8 +6,8 @@ from time import gmtime, strftime, localtime
 from datetime import datetime
 
 TOPICS_PER_PAGE         = 20
-PARSING_SLEEP           = 3
-TIMEOUT_SLEEP           = 30
+PARSING_SLEEP           = 2
+TIMEOUT_SLEEP           = 10
 TIMEOUT_NUM             = 5
 TIMEOUT_RETRY           = 60
 FIRST_LAST_ONLY         = True
@@ -143,7 +143,12 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts):
             try:
                 dateTimeOfRequest = localtime()
                 r = requests.get(url, headers = headers)
-                break
+                if r.text[:21] == "Busy, try again (504)":
+                    print 'Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    time.sleep(TIMEOUT_RETRY)
+                    continue
+                else:
+                    break
             except exceptions.BaseException as e:
                 # print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 print 'Error:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
