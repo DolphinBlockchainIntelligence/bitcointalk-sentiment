@@ -79,7 +79,7 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
 
 #####################################################
 
-def parseTopicPages(topicID, firstLastOnly, topicPosts):
+def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
 
     # 'https://bitcointalk.org/index.php?topic=1541329.0'
     topicURL = urlTopicTemplate + str(topicID) + '.0'
@@ -101,16 +101,22 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts):
             tTotalPages = tPageNum
 
     # get first page of topic posts
-    parseTopicPagePosts(topicID, topicURL, headers, 1, ttree, topicPosts)
-
+    userNameAndUrl = {}
+    parseTopicPagePosts(topicID, topicURL, headers, 1, ttree, topicPosts, userNameAndUrl)
+    firstPageTopicPostsNum = len(topicPosts)
+    starterUserNameAndUrl["topicStarterUrl"] = userNameAndUrl["topicStarterUrl"]
+    starterUserNameAndUrl["topicStarter"]    = userNameAndUrl["topicStarter"]
+    starterUserNameAndUrl["NumReplies"]      = 0
+    
     if firstLastOnly == True:
         tCurrentPage = tTotalPages - 1
         if tCurrentPage != 0:
             tUrlTail = tCurrentPage*TOPICS_PER_PAGE
             tUrl = urlTopicTemplate + str(topicID) + '.' + str(tUrlTail)
-            parseTopicPagePosts(topicID, tUrl, headers, 1, '', topicPosts)
-            #topicPosts.update(newTopicPosts)    
-
+            parseTopicPagePosts(topicID, tUrl, headers, 1, '', topicPosts, userNameAndUrl)
+            starterUserNameAndUrl["NumReplies"] = ( tTotalPages - 2) * TOPICS_PER_PAGE + len(topicPosts)
+        else:
+            starterUserNameAndUrl["NumReplies"] = len(topicPosts)
     else:
         tCurrentPage = 1
         while True:
@@ -122,8 +128,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts):
             tUrl = urlTopicTemplate + str(topicID) + '.' + str(tUrlTail)
             tCurrentPage += 1
 
-            parseTopicPagePosts(topicID,tUrl,headers,1,'',topicPosts)
-            #topicPosts.update(newTopicPosts)
+            parseTopicPagePosts(topicID,tUrl,headers,1,'',topicPosts, userNameAndUrl)
 
             percent = 100.0 * tCurrentPage / tTotalPages
             print "Completed %3.1f%%" % percent
@@ -134,7 +139,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts):
 
 #####################################################
 
-def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts):
+def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, firstPostUserNameAndUrl):
 
     if treeIn == "":
         time.sleep(PARSING_SLEEP)
@@ -170,25 +175,33 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts):
         f.close()
         raise
 
-    # number of posts 
+    # number of posts
+    flagFirstPostUser = True
     rows = table.xpath('//td[@class = "windowbg" or @class = "windowbg2"]')
 
     for row in rows:
         anchors = row.xpath('.//td[@class = "poster_info"]/b/a')
         if len(anchors) == 0:
             # skipping
-            continue 
+            continue
         else:	
             anchor = anchors[0]
             postUserName = parserHtml.unescape(anchor.xpath('descendant-or-self::text()')[0]).encode('utf-8')
-            url = anchor.xpath('@href')[0]
+            postUserUrl  = anchor.xpath('@href')[0]
+            if flagFirstPostUser:
+                flagFirstPostUser = False
+                firstPostUserNameAndUrl["topicStarter"] = postUserName
+                firstPostUserNameAndUrl["topicStarterUrl"]  = postUserUrl
+
+            #f = furl(postUserUrl)
+            #postUserId = f.args["u"]
 
             postHeadA = row.xpath('.//td[@class = "td_headerandpost"]//div[@class = "subject"]/a')[0]
             postHead = parserHtml.unescape(postHeadA.xpath('descendant-or-self::text()')[0]).encode('utf-8')
             postHeadUrl = postHeadA.xpath('@href')[0]
             # https://tproger.ru/translations/regular-expression-python/
             result  = re.search(r'#msg\d+', postHeadUrl)
-            postID = result.group(0)[4:]  
+            postID = result.group(0)[4:]
 
             postDateList  = row.xpath('.//td[@class = "td_headerandpost"]//div[@class = "smalltext"]/text()')
             if len(postDateList) == 0:
@@ -250,7 +263,7 @@ print "Parsing ICO announcements topics list"
 # read from page 1 to totalPages
 currentPage  = 1
 # temporary limit number of pages
-totalPages   = 2
+totalPages   = 1
 
 onlyOneTopicId = "0"
 
@@ -323,23 +336,48 @@ try:
 except:
     icoListOld = {}   
 
-'''
+#del icoList
+#icoList = {}
+
 # read bootstrap.json to append announcements or ico discussions
 try:
     with open(DATA_FILES_DIR + 'bootstrap.json', 'r') as fBootstrap:
-	bootstrapList = json.load(fBootstrap)
+        bootstrapList = json.load(fBootstrap)
     fBootstrap.close
+    print "  adding a bootstrap.json items to topics list: ", len(bootstrapList)
 except:
     bootstrapList = {}
 
 # append topics from bootstrap to icoList:
 for bootTopic in bootstrapList:
-    try:
-	dummy = icoList[bootTopic]["topicId"]
-    except:
-	icoList[bootTopic]["topicId"]
-'''    
+    if bootTopic not in icoList.keys():
+        bootTopicPosts = {}
+        starterUserNameAndUrl = {}
+        parseTopicPages(bootTopic, FIRST_LAST_ONLY, bootTopicPosts, starterUserNameAndUrl)
+        # "topicStarterUrl" = starterUserNameAndUrl
+        # "topicStarter"= 
+        # "DateTimeLastPost"
+        # set last comment date
+        maxParsedDateTime = ''
+        for post in bootTopicPosts:
+            parsedDateTime = datetime.strptime(bootTopicPosts[post]["date"], '%B %d, %Y, %I:%M:%S %p').strftime("%Y-%m-%d %H:%M:%S")
+            if maxParsedDateTime < parsedDateTime:
+                maxParsedDateTime = parsedDateTime
+                
+        icoList[bootTopic] = { "DateTimeLastPost": maxParsedDateTime,
+                               "topicUrl"        : bootstrapList[bootTopic]["topicUrl"],
+                               "topicId"         : post,
+                               "sourceJson"      : post + '.json',
+                               "NumViews"        : "0", 
+                               "announce"        : bootstrapList[bootTopic]["token"],        
+                               "topicStarterUrl" : starterUserNameAndUrl["topicStarterUrl"],
+                               "topicStarter"    : starterUserNameAndUrl["topicStarter"],
+                               "NumReplies"      : starterUserNameAndUrl["NumReplies"] }
+        
+        del bootTopicPosts
 
+# print icoList
+# sys.exit(1)
 
 # reparse changed ICOs with saving all files on each iteration
 # because of possible script crash or btt start blocking access
@@ -348,6 +386,7 @@ for bootTopic in bootstrapList:
 # but interim post data is dumped to <topicId>.json each PARSED_PAGES_SAVE_POSTS pages
 icoListNum = len(icoList)
 icoListCurr = 1
+userNameAndUrl = {}
 for ico in icoList:
     # process only one topic if specified in command line
     if onlyOneTopicId != "0" and onlyOneTopicId != ico:
@@ -388,7 +427,7 @@ for ico in icoList:
     for icoTopicPage in range(numPagesOld, numPagesNew+1):    
         tUrlTail = icoTopicPage*TOPICS_PER_PAGE
         tUrl = urlTopicTemplate + ico + '.' + str(tUrlTail)
-        parseTopicPagePosts(ico, tUrl, headers, 1, '', topicPosts)
+        parseTopicPagePosts(ico, tUrl, headers, 1, '', topicPosts, userNameAndUrl)
         icoChangedPagesCurr += 1
 
         # save posts each PARSED_PAGES_SAVE_POSTS pages
