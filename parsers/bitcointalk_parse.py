@@ -25,7 +25,20 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
 
     if treeIn == "":
         time.sleep(PARSING_SLEEP)
-        r = requests.get(url, headers = headers)
+        while True:
+            try:
+                r = requests.get(url, headers = headers)
+                if r.text.find('Busy, try again (504)') != -1:
+                    print 'Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    time.sleep(TIMEOUT_RETRY)
+                    continue
+                else:
+                    break   
+            except exceptions.BaseException as e:
+                # print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                print 'Error:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY)            
+        
         tree = html.fromstring(r.text)
     else:
         tree = treeIn
@@ -148,7 +161,7 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, fi
             try:
                 dateTimeOfRequest = localtime()
                 r = requests.get(url, headers = headers)
-                if r.text[:21] == "Busy, try again (504)":
+                if r.text.find('Busy, try again (504)') != -1:
                     print 'Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                     time.sleep(TIMEOUT_RETRY)
                     continue
@@ -282,17 +295,6 @@ except getopt.GetoptError as e:
     print sys.argv[0], ' -s <start page> -n <num pages> [-t <topic id>]'
     sys.exit(1)
 
-'''
-try:
-  currentPage  = int( sys.argv[1] )
-  totalPages   = int( sys.argv[2] )
-except:
-  # read from page 1 to totalPages
-  currentPage  = 1
-  # temporary limit number of pages
-  totalPages   = 2
-'''
-
 print "Parsing topics from page ", currentPage, " to page ", totalPages
 icoList = {}
 
@@ -321,9 +323,6 @@ while True:
 
 print "Parsing ICO posts"
 
-# Storj 555159
-# parseTopicPages('555159', FULL_TOPIC_POSTS, topicPosts)
-
 # http://www.developersite.org/102-103188-python
 # http://jsonviewer.stack.hu/
 
@@ -339,42 +338,62 @@ except:
 #del icoList
 #icoList = {}
 
-# read bootstrap.json to append announcements or ico discussions
+# read assetList.json to append ico announcement topics of BTT
 try:
-    with open(DATA_FILES_DIR + 'bootstrap.json', 'r') as fBootstrap:
-        bootstrapList = json.load(fBootstrap)
-    fBootstrap.close
-    print "  adding a bootstrap.json items to topics list: ", len(bootstrapList)
+    with open(DATA_FILES_DIR + 'assetList.json', 'r') as fAssetList:
+        assetList = json.load(fAssetList)
+    fAssetList.close
+    print "  adding assets from assetList.json items", len(assetList), "to topics list"
 except:
-    bootstrapList = {}
+    assetList = {}
 
-# append topics from bootstrap to icoList:
-for bootTopic in bootstrapList:
-    if bootTopic not in icoList.keys():
-        bootTopicPosts = {}
-        starterUserNameAndUrl = {}
-        parseTopicPages(bootTopic, FIRST_LAST_ONLY, bootTopicPosts, starterUserNameAndUrl)
-        # "topicStarterUrl" = starterUserNameAndUrl
-        # "topicStarter"= 
-        # "DateTimeLastPost"
-        # set last comment date
-        maxParsedDateTime = ''
-        for post in bootTopicPosts:
-            parsedDateTime = datetime.strptime(bootTopicPosts[post]["date"], '%B %d, %Y, %I:%M:%S %p').strftime("%Y-%m-%d %H:%M:%S")
-            if maxParsedDateTime < parsedDateTime:
-                maxParsedDateTime = parsedDateTime
+itemsBeforeAdding = len(icoList)
+# append topics from assetList to icoList:
+for asset in assetList:
+    for link in assetList[asset]["links"]:
+        if link["linkType"] == "Announcement" and \
+           link["linkUrl"].find('bitcointalk.org') != -1 and \
+           assetList[asset]["rank"] < 100:
+           
+            print "  adding", asset 
+            try:
+                bttTopicIdUni = re.search('topic=(.+?)\.0', link["linkUrl"]).group(1)
+                bttTopicId = bttTopicIdUni.encode('ascii','ignore')
+            except:
+                print "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
+                continue                
+            
+            if bttTopicId not in icoList.keys():
                 
-        icoList[bootTopic] = { "DateTimeLastPost": maxParsedDateTime,
-                               "topicUrl"        : bootstrapList[bootTopic]["topicUrl"],
-                               "topicId"         : post,
-                               "sourceJson"      : post + '.json',
-                               "NumViews"        : "0", 
-                               "announce"        : bootstrapList[bootTopic]["token"],        
-                               "topicStarterUrl" : starterUserNameAndUrl["topicStarterUrl"],
-                               "topicStarter"    : starterUserNameAndUrl["topicStarter"],
-                               "NumReplies"      : starterUserNameAndUrl["NumReplies"] }
-        
-        del bootTopicPosts
+                if bttTopicId in icoListOld.keys():
+                    
+                    icoList[bttTopicId] = icoListOld[bttTopicId].copy()
+                    
+                else:
+                    assetTopicPosts = {}
+                    starterUserNameAndUrl = {}
+                    parseTopicPages(bttTopicId, FIRST_LAST_ONLY, assetTopicPosts, starterUserNameAndUrl)
+                    
+                    # set "DateTimeLastPost" equal to the last comment date and time
+                    maxParsedDateTime = ''
+                    for post in assetTopicPosts:
+                        parsedDateTime = datetime.strptime(assetTopicPosts[post]["date"], '%B %d, %Y, %I:%M:%S %p').strftime("%Y-%m-%d %H:%M:%S")
+                        if maxParsedDateTime < parsedDateTime:
+                            maxParsedDateTime = parsedDateTime
+                            
+                    icoList[bttTopicId] = { "DateTimeLastPost": maxParsedDateTime,
+                                            "topicUrl"        : link["linkUrl"],
+                                            "topicId"         : post,
+                                            "sourceJson"      : post + '.json',
+                                            "NumViews"        : "0",
+                                            "announce"        : asset,
+                                            "topicStarterUrl" : starterUserNameAndUrl["topicStarterUrl"],
+                                            "topicStarter"    : starterUserNameAndUrl["topicStarter"],
+                                            "NumReplies"      : starterUserNameAndUrl["NumReplies"] }
+                    
+                    del assetTopicPosts
+
+print "Number of items was added:", len(icoList) - itemsBeforeAdding
 
 # print icoList
 # sys.exit(1)
@@ -419,7 +438,7 @@ for ico in icoList:
     if numPagesOld > numPagesNew: 
         numPagesOld = numPagesNew
 
-    print "For topic ", ico ," need to parse pages from", numPagesOld+1, ' to ', numPagesNew+1
+    print "For", icoList[ico]["announce"], "(", ico, ")" ," need to parse pages from", numPagesOld+1, ' to ', numPagesNew+1
 
     topicParsingDT = strftime("%Y-%m-%d %H:%M", localtime())
     icoChangedPagesNum = numPagesNew - numPagesOld + 1

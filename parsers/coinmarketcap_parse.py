@@ -26,18 +26,33 @@ parserHtml = HTMLParser()
 
 assetsList = {}
 table = tree.xpath('//table[@id="currencies-all"]')[0]
+'''
+tableLines = table.xpath(".//tr")
+print len(tableLines)
+for line in tableLines:
+    cols = line.xpath('.//td[@class="no-wrap currency-name"]/a')
+    if len(cols) > 0:
+        print cols[0].xpath('descendant-or-self::text()')[0]
+
+    cols = line.xpath('.//td[@class="text-center"]/a')
+    if len(cols) > 0:
+        print cols[0].xpath('descendant-or-self::text()')[0]
+
+sys.exit(0)
+'''
+
 rows = table.xpath('.//tr/td[@class="no-wrap currency-name"]/a')
 assetNum = len(rows)
 print "Number of assets: ", assetNum
 assetCount = 0
+assetRank  = 0
 for row in rows:
+    # assumption that listing is always ordered by capitalization
+    assetRank += 1 
     assetUrl  = row.xpath('@href')[0]
-    assetName = parserHtml.unescape(row.xpath('descendant-or-self::text()')[0]).encode('utf-8')
+    # assetName = parserHtml.unescape(row.xpath('descendant-or-self::text()')[0]).encode('utf-8')
     assetFullUrl = URL_CMC_ROOT + assetUrl
     # print assetName, ":" #,  assetFullUrl
-    
-    assetsList[assetName] = { "CmcUrl"   : assetUrl,
-                              "links"    : [] }
     
     time.sleep(PARSING_SLEEP)
     while True:
@@ -53,6 +68,11 @@ for row in rows:
     if len(assetNamesFull) > 0:
         assetName = assetNamesFull[0].xpath('descendant-or-self::text()')[0].strip().encode('utf-8')
         #assetName = parserHtml.unescape(assetNamesFull[0].xpath('descendant-or-self::text()')[0]).encode('utf-8')
+
+    assetsList[assetName] = { "rank"     : assetRank,
+                              "cmcUrl"   : assetUrl,
+                              "links"    : [] }        
+
 
     listItems = treeA.xpath('//ul[@class="list-unstyled"]/li')
     
@@ -71,13 +91,13 @@ for row in rows:
     assetCount += 1
     print assetCount, " / ", assetNum, '( ', assetName, ' )'
     
-    if assetCount == 2:
-        break
+    #if assetCount == 10:
+    #    break
 
-print assetsList
-'''
-with open('assetsList2.json', 'w') as fAssetsList:
+# print assetsList
+
+with open('assetsList.json', 'w') as fAssetsList:
     json.dump(assetsList, fAssetsList, sort_keys=True, indent=4)
 fAssetsList.close
-''' 
+ 
     
