@@ -148,14 +148,17 @@ def classify(input_file, model_file, output_folder, output_posts):
                 print('Invalid number of posts value. Outputting all posts.')
 
 
-
-    with open('{}\S{}.json'.format(output_folder, topic_name), 'w') as f:
+    file_name = os.path.join(output_folder, 'S{}.json'.format(topic_name))
+    with open(file_name, 'w') as f:
         json.dump(transform_sentiment_dict(json_sentiment), f, ensure_ascii=False)
-    print('Saved sentiment counts to {}\S{}.json'.format(output_folder, topic_name))
-
-    with open('{}\D{}.json'.format(output_folder, topic_name), 'w') as f:
+    print('Saved sentiment counts to {}'.format(file_name))
+    f.close()
+    
+    file_name = os.path.join(output_folder, 'D{}.json'.format(topic_name))
+    with open(file_name, 'w') as f:
         topic_df_slice.to_json(f, orient='index')
-    print('Saved posts with sentiments to {}\D{}.json'.format(output_folder, topic_name))
+    print('Saved posts with sentiments to {}'.format(file_name))
+    f.close()
 
 if __name__ == "__main__":
    main(sys.argv[1:])
