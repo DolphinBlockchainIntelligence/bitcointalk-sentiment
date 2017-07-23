@@ -56,8 +56,8 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
     for topicId in parsedList.keys():
         if topicId not in sentimentList.keys():
             toClassify.append(topicId)
-        elif datetime.datetime.strptime(parsedList['topicId']['dateTimeParsing'], '%Y.%m.%d %H:%M') >=\
-                datetime.datetime.strptime(sentimentList['topicId']['dateTimeSentiment'], '%Y.%m.%d %H:%M'):
+        elif datetime.datetime.strptime(parsedList[topicId]['dateTimeParsing'], '%Y.%m.%d %H:%M') >=\
+                datetime.datetime.strptime(sentimentList[topicId]['dateTimeSentiment'], '%Y.%m.%d %H:%M'):
             toClassify.append(topicId)
 
     currentTime = datetime.datetime.now()
