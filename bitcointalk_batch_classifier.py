@@ -41,7 +41,7 @@ def main(argv):
 def batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json, output_posts):
 
     try:
-        f = open('lockSentiment.txt', 'w')
+        flockSentiment = open('lockSentiment.txt', 'w')
     except:
         print('Another process is working. Exiting.')
         sys.exit(1)
@@ -61,16 +61,23 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
             toClassify.append(topicId)
 
     currentTime = datetime.datetime.now()
-
+    
+    numTopics = len(toClassify)
+    print("Topics to (re)process:{}".format(numTopics))
+    currTopic = 0
     for topicId in toClassify:
         filename = os.path.join(input_folder, '{}.json'.format(topicId))
         bitcointalk_sentiment_classifier.classify(filename, model_file, output_folder, output_posts)
         sentimentList[topicId] = {'dateTimeSentiment': currentTime.strftime('%Y.%m.%d %H:%M')}
-
-    with open('sentimentList.json', 'w') as f:
-        json.dump(sentimentList, f)
-
-    f.close()
+        
+        currTopic += 1
+        if currTopic % 10 == 0:
+            with open('sentimentList.json', 'w') as f:
+                json.dump(sentimentList, f)
+            f.close()
+        print("Processed {} topics of {}".format(currTopic, numTopics))
+    
+    flockSentiment.close()
 
 if __name__ == '__main__':
     main(sys.argv[1:])
