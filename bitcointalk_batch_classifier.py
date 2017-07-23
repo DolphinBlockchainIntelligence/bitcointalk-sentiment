@@ -72,7 +72,7 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
         
         currTopic += 1
         if currTopic % 10 == 0:
-            with open('sentimentList.json', 'w') as f:
+            with open(sentiment_json, 'w') as f:
                 json.dump(sentimentList, f)
             f.close()
         print("Processed {} topics of {}".format(currTopic, numTopics))
