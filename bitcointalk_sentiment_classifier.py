@@ -6,6 +6,7 @@ import getopt
 import sys
 import pickle
 import warnings
+import os
 
 def main(argv):
     warnings.filterwarnings('ignore', category=DeprecationWarning)
@@ -120,7 +121,7 @@ def classify(input_file, model_file, output_folder, output_posts):
         json_sentiment[string_date]['neutral'] = int(neutral[i])
         json_sentiment[string_date]['negative'] = int(negatives[i])
 
-    topic_name = input_file.split('\\')[1]
+    _, topic_name = os.path.split(input_file)
     topic_name = topic_name.split('.')[0]
 
     topic_df['date'].apply(str)
