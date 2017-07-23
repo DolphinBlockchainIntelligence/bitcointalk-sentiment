@@ -4,16 +4,18 @@ from lxml import html, etree
 from HTMLParser import HTMLParser
 from time import gmtime, strftime, localtime
 from datetime import datetime
+import furl
 
 TOPICS_PER_PAGE         = 20
-PARSING_SLEEP           = 2
+PARSING_SLEEP           = 1
 TIMEOUT_SLEEP           = 10
 TIMEOUT_NUM             = 5
 TIMEOUT_RETRY           = 60
 FIRST_LAST_ONLY         = True
 FULL_TOPIC_POSTS        = False
-DATA_FILES_DIR          = "..\\data\\"
+DATA_FILES_DIR          = "../data/"
 PARSED_PAGES_SAVE_POSTS = 20
+TOP_CMC_ITEMS           = 400   # top coinmarketcap items to parse
 
 headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 urlStart = 'https://bitcointalk.org/index.php?board=159.0'
@@ -32,6 +34,18 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
                     print 'Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                     time.sleep(TIMEOUT_RETRY)
                     continue
+                elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
+                    print 'Error: "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    time.sleep(TIMEOUT_RETRY)
+                    continue
+                elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
+                    print 'Error: "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    print "response: ", r.text
+                    f = open("error_page_500.dmp", "w")
+                    f.write(r.text)
+                    f.close()
+                    time.sleep(TIMEOUT_RETRY)
+                    continue
                 else:
                     break   
             except exceptions.BaseException as e:
@@ -44,9 +58,18 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
         tree = treeIn
 
     parserHtml = HTMLParser()
-
-    table = tree.xpath('//table[@class = "bordercolor"]')[1]
-    rows = table.xpath(".//tr")
+    
+    try:
+        table = tree.xpath('//table[@class = "bordercolor"]')[1]
+        rows = table.xpath(".//tr")
+    except Exception, e:
+        print >> sys.stderr, "Exception parsing ICO list, url: ", url
+        print >> sys.stderr, "Exception: %s" % str(e)
+        f = open("error_page.dmp", "w")
+        f.write(r.text)
+        f.close()
+        raise
+    
     tabLine = 0
     for row in rows:
         tabLine += 1
@@ -103,7 +126,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
     ttree = html.fromstring(tr.text)
 
     tPages = ttree.xpath('//a[@class = "navPages"]')
-    tTotalPages = 0
+    tTotalPages = tPageNum = 0
     for tPage in tPages:
         try:
             tPageNum = int( tPage.xpath('text()')[0].encode('utf-8') )
@@ -163,6 +186,18 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, fi
                 r = requests.get(url, headers = headers)
                 if r.text.find('Busy, try again (504)') != -1:
                     print 'Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    time.sleep(TIMEOUT_RETRY + TIMEOUT_RETRY)
+                    continue
+                elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
+                    print 'Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    time.sleep(TIMEOUT_RETRY + TIMEOUT_RETRY)
+                    continue
+                elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
+                    print 'Error: "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    print "response: ", r.text
+                    f = open("error_page_500.dmp", "w")
+                    f.write(r.text)
+                    f.close()
                     time.sleep(TIMEOUT_RETRY)
                     continue
                 else:
@@ -353,16 +388,25 @@ for asset in assetList:
     for link in assetList[asset]["links"]:
         if link["linkType"] == "Announcement" and \
            link["linkUrl"].find('bitcointalk.org') != -1 and \
-           assetList[asset]["rank"] < 100:
+           assetList[asset]["rank"] < TOP_CMC_ITEMS:
            
             print "  adding", asset 
-            try:
-                bttTopicIdUni = re.search('topic=(.+?)\.0', link["linkUrl"]).group(1)
-                bttTopicId = bttTopicIdUni.encode('ascii','ignore')
-            except:
-                print "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
-                continue                
-            
+            if link["linkUrl"][-2:] == '.0':			
+                try:
+                    bttTopicIdUni = re.search('topic=(.+?)\.0', link["linkUrl"]).group(1)
+                    bttTopicId = bttTopicIdUni.encode('ascii','ignore')
+                except:
+                    print "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
+                    continue
+            else:
+                f = furl.furl(link["linkUrl"])
+                try:
+                    bttTopicIdUni = f.args["topic"]
+                    bttTopicId = bttTopicIdUni.encode('ascii','ignore')
+                except:
+                    print "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
+                    continue
+				
             if bttTopicId not in icoList.keys():
                 
                 if bttTopicId in icoListOld.keys():
