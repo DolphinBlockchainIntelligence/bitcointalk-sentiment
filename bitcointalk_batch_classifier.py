@@ -41,22 +41,24 @@ def main(argv):
 def batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json, output_posts):
 
     try:
-        flockSentiment = open('lockSentiment.txt', 'w')
+        fLockSentiment = open('lockSentiment.txt', 'w')
     except:
         print('Another process is working. Exiting.')
         sys.exit(1)
 
     with open(announce_json, 'r') as f:
         parsedList = json.load(f)
+    f.close()
     with open(sentiment_json, 'r') as f:
         sentimentList = json.load(f)
+    f.close()
 
     toClassify = []
 
     for topicId in parsedList.keys():
         if topicId not in sentimentList.keys():
             toClassify.append(topicId)
-        elif datetime.datetime.strptime(parsedList[topicId]['dateTimeParsing'], '%Y.%m.%d %H:%M') >=\
+        elif datetime.datetime.strptime(parsedList[topicId]['dateTimeParsing'], '%Y-%m-%d %H:%M') >=\
                 datetime.datetime.strptime(sentimentList[topicId]['dateTimeSentiment'], '%Y.%m.%d %H:%M'):
             toClassify.append(topicId)
 
@@ -77,7 +79,7 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
             f.close()
         print("Processed {} topics of {}".format(currTopic, numTopics))
     
-    flockSentiment.close()
+    fLockSentiment.close()
 
 if __name__ == '__main__':
     main(sys.argv[1:])
