@@ -287,6 +287,12 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, fi
 
 #####################################################
 
+try:
+    f = open('lockBttParsing.txt', 'w')
+except:
+    print('Another process is working. Exiting.')
+    sys.exit(1)
+
 # count num of pages
 r = requests.get(urlStart, headers = headers)
 tree = html.fromstring(r.text)
