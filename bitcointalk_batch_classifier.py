@@ -3,6 +3,7 @@ import sys
 import bitcointalk_sentiment_classifier
 import json
 import datetime
+import os
 
 def main(argv):
     input_folder = ''
@@ -62,7 +63,7 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
     currentTime = datetime.datetime.now()
 
     for topicId in toClassify:
-        filename = '{}\\{}.json'.format(input_folder, topicId)
+        filename = os.path.join(input_folder, '{}.json'.format(topicId))
         bitcointalk_sentiment_classifier.classify(filename, model_file, output_folder, output_posts)
         sentimentList[topicId] = {'dateTimeSentiment': currentTime.strftime('%Y.%m.%d %H:%M')}
 
