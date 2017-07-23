@@ -21,7 +21,7 @@ def main(argv):
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder>')
+            print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder> -n <number of output posts [number|fraction|all]>')
             sys.exit()
         elif opt == '-i':
             input_file = arg

@@ -10,16 +10,17 @@ def main(argv):
     output_folder = ''
     announce_json = ''
     sentiment_json = ''
+    output_posts = ''
 
     try:
-        opts, args = getopt.getopt(argv, "hi:m:f:a:s:")
+        opts, args = getopt.getopt(argv, "hi:m:f:a:s:n:")
     except getopt.GetoptError:
-        print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON>')
+        print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON> -n <number of output posts [number|fraction|all]>')
         sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':
-            print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON>')
+            print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON> -n <number of output posts [number|fraction|all]>')
         elif opt == '-i':
             input_folder = arg
         elif opt == '-m':
@@ -30,12 +31,13 @@ def main(argv):
             announce_json = arg
         elif opt == '-s':
             sentiment_json = arg
+        elif opt == '-n':
+            output_posts = arg
+
+    batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json, output_posts)
 
 
-    batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json)
-
-
-def batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json):
+def batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json, output_posts):
 
     try:
         f = open('lockSentiment.txt', 'w')
@@ -61,7 +63,7 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
 
     for topicId in toClassify:
         filename = '{}\\{}.json'.format(input_folder, topicId)
-        bitcointalk_sentiment_classifier.classify(filename, model_file, output_folder)
+        bitcointalk_sentiment_classifier.classify(filename, model_file, output_folder, output_posts)
         sentimentList[topicId] = {'dateTimeSentiment': currentTime.strftime('%Y.%m.%d %H:%M')}
 
     with open('sentimentList.json', 'w') as f:
