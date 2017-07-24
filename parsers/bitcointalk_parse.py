@@ -318,6 +318,8 @@ print "Parsing ICO announcements topics list"
 currentPage  = 1
 # temporary limit number of pages
 totalPages   = 1
+# default data dir path
+dataDirPath = DATA_FILES_DIR
 
 onlyOneTopicId = "0"
 
@@ -331,6 +333,8 @@ try:
             totalPages   = int( optValue )
         elif optName == '-t':
             onlyOneTopicId  = optValue
+        elif optName == '-d':
+            dataDirPath = optValue
 
 except getopt.GetoptError as e:
     print sys.argv[0], ' -s <start page> -n <num pages> [-t <topic id>]'
@@ -371,7 +375,7 @@ print "Parsing ICO posts"
 icoListOld = {}
 
 try:
-    with open(DATA_FILES_DIR + 'announceList.json', 'r') as oldAnnList:
+    with open(dataDirPath + 'announceList.json', 'r') as oldAnnList:
         icoListOld = json.load(oldAnnList)
 except:
     icoListOld = {}   
@@ -381,7 +385,7 @@ except:
 
 # read assetList.json to append ico announcement topics of BTT
 try:
-    with open(DATA_FILES_DIR + 'assetList.json', 'r') as fAssetList:
+    with open(dataDirPath + 'assetList.json', 'r') as fAssetList:
         assetList = json.load(fAssetList)
     fAssetList.close
     print "  adding assets from assetList.json items", len(assetList), "to topics list"
@@ -465,7 +469,7 @@ for ico in icoList:
     # read all <topicId>.json if exits
     # so we proceed to parse topic pages staring from last <topicId>.json dump
     try:
-        with open(DATA_FILES_DIR + ico + '.json', 'r') as fTopicPosts:
+        with open(dataDirPath + ico + '.json', 'r') as fTopicPosts:
             topicPosts = json.load(fTopicPosts)
         fTopicPosts.close
     except:
@@ -502,7 +506,7 @@ for ico in icoList:
         # save posts each PARSED_PAGES_SAVE_POSTS pages
         postsSavedFlag = ""
         if icoChangedPagesCurr % PARSED_PAGES_SAVE_POSTS == 0:
-            with open(DATA_FILES_DIR + ico + '.json', 'w') as fTopicPosts:
+            with open(dataDirPath + ico + '.json', 'w') as fTopicPosts:
                 json.dump(topicPosts, fTopicPosts, sort_keys=True, indent=4)
             fTopicPosts.close
             postsSavedFlag = " (dumped to disk)"
@@ -511,7 +515,7 @@ for ico in icoList:
         percent = 100.0 * icoChangedPagesCurr / icoChangedPagesNum
         print "  topic ", ico, " parsing completion %3.1f%%" % percent, postsSavedFlag
 
-    with open(DATA_FILES_DIR + ico + '.json', 'w') as fTopicPosts:
+    with open(dataDirPath + ico + '.json', 'w') as fTopicPosts:
         json.dump(topicPosts, fTopicPosts, sort_keys=True, indent=4)
     fTopicPosts.close
 
@@ -527,7 +531,7 @@ for ico in icoList:
 
     icoListOld[ico]["DateTimeLastPost"] = maxParsedDateTime
 
-    with open(DATA_FILES_DIR + 'announceList.json', 'w') as fAnnounceList: 
+    with open(dataDirPath + 'announceList.json', 'w') as fAnnounceList: 
         json.dump(icoListOld, fAnnounceList, indent=4)
     fAnnounceList.close
 
