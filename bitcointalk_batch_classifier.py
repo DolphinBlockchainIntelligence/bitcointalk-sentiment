@@ -79,6 +79,10 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
             f.close()
         print("Processed {} topics of {}".format(currTopic, numTopics))
     
+    with open(sentiment_json, 'w') as f:
+        json.dump(sentimentList, f)
+    f.close()
+
     fLockSentiment.close()
 
 if __name__ == '__main__':
