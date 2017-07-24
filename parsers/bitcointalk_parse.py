@@ -325,7 +325,7 @@ onlyOneTopicId = "0"
 
 # read command line params if specified
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "s:n:t:")
+    opts, args = getopt.getopt(sys.argv[1:], "s:n:t:d:")
     for optName, optValue in opts:
         if optName == '-s':
             currentPage  = int( optValue )
