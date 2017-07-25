@@ -8,23 +8,26 @@ import furl
 # const
 DATA_FILES_DIR = "../data/"
 TOP_CMC_ITEMS  = 1000
-REPLIES_THRESHOLD = 40 # at least one page of btt
+MIN_REPLIES = 40 # at least one page of btt
 
 # vars
 announceListOutputFilename = 'announceListNew.json'
 dataDirPath = DATA_FILES_DIR
 sentimDataDirPath = DATA_FILES_DIR
+minReplies = MIN_REPLIES
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "o:d:")
+    opts, args = getopt.getopt(sys.argv[1:], "o:d:m:")
     for optName, optValue in opts:
         if optName == '-o':
             announceListOutputFilename = optValue
         elif optName == '-d':
             dataDirPath = optValue
+        elif optName == '-m':
+            minReplies = int(optValue)
             
 except getopt.GetoptError as e:
-    print sys.argv[0], ' -o <announce list json output filename> [-d <data/dir/>]'
+    print sys.argv[0], ' -o <announce list json output filename> [-d <data/dir/>] [-m min replies]'
     print "default data dir is ", DATA_FILES_DIR
     sys.exit(1)
 
@@ -39,16 +42,7 @@ try:
 except:
     announceListInput = {}
 
-# filter out items in announceListInput with a few replies
-announcesBeforeProcessingNum = len(announceListInput)
-for announce in announceListInput.keys():
-    numReplies = int(announceListInput[announce]["NumReplies"])
-    if numReplies < REPLIES_THRESHOLD:
-        del announceListInput[announce]
-print "Announce list reduced from", announcesBeforeProcessingNum, \
-      "to", len(announceListInput), "items according to 'min replies' rule"
-
-# and no data files
+# filter out items in announceListInput with no data files
 announcesBeforeProcessingNum = len(announceListInput)
 jsonFiles = [f for f in os.listdir(dataDirPath) if re.match('[0-9]*\.json', f)]
 for announce in announceListInput.keys():
@@ -66,11 +60,10 @@ try:
     with open(dataDirPath + 'assetList.json', 'r') as fAssetList:
         assetList = json.load(fAssetList)
     fAssetList.close()
-    print "  Number of assets from assetList.json items:", len(assetList)
+    print "Number of assets from assetList.json items:", len(assetList)
 except:
     assetList = {}
 
-print "assets in mind:", len(assetList)
 announcesRenamed = 0
 for asset in assetList:
     for link in assetList[asset]["links"]:
@@ -101,6 +94,20 @@ for asset in assetList:
                 print "Asset (", asset, ") : not found in announce list"
 
 print announcesRenamed, "announces renamed as in CMC"
+
+# filter out items in announceListInput with a few replies
+# but do it only for absent in CMC
+announcesBeforeProcessingNum = len(announceListInput)
+for announce in announceListInput.keys():
+    numReplies = int(announceListInput[announce]["NumReplies"])
+    if numReplies < minReplies:
+        try:
+            _ = announceListInput[announce]["rank"]
+        except:
+            del announceListInput[announce]
+        
+print "Announce list reduced from", announcesBeforeProcessingNum, \
+      "to", len(announceListInput), "items according to 'min replies' rule with CMC preserve"
 
 if len(announceListInput) != 0:
     with open(announceListOutputFilename, 'w') as fAnnounceListOutput:
