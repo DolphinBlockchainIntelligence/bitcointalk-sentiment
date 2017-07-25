@@ -63,10 +63,10 @@ print "Announce list reduced from", announcesBeforeProcessingNum, "to", len(anno
 # and replace "announce" with asset name
 # read assetList.json
 try:
-    with open(dataDirPath + 'assetsList.json', 'r') as fAssetList:
+    with open(dataDirPath + 'assetList.json', 'r') as fAssetList:
         assetList = json.load(fAssetList)
     fAssetList.close()
-    print "  Number of assets from assetsList.json items:", len(assetList)
+    print "  Number of assets from assetList.json items:", len(assetList)
 except:
     assetList = {}
 
