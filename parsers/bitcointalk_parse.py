@@ -483,7 +483,10 @@ for ico in icoList:
         numRepliesNew = 0
 
     if numRepliesNew == numRepliesOld:
-        print "For topic ", ico ," no changes"    
+        print "For topic ", ico ," no changes"
+        icoListCurr += 1
+        percent = 100.0 * icoListCurr / icoListNum
+        print "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"        
         continue
 
     numPagesOld = int(math.ceil( numRepliesOld / TOPICS_PER_PAGE ))
