@@ -97,9 +97,11 @@ print announcesRenamed, "announces renamed as in CMC"
 
 # filter out items in announceListInput with a few replies
 # but do it only for absent in CMC
+# also convert all replies num from string to num
 announcesBeforeProcessingNum = len(announceListInput)
 for announce in announceListInput.keys():
     numReplies = int(announceListInput[announce]["NumReplies"])
+    announceListInput[announce]["NumReplies"] = numReplies
     if numReplies < minReplies:
         try:
             _ = announceListInput[announce]["rank"]
