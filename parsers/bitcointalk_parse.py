@@ -484,9 +484,9 @@ for ico in icoList:
 
     if numRepliesNew == numRepliesOld:
         print "For topic ", ico ," no changes"
-        icoListCurr += 1
         percent = 100.0 * icoListCurr / icoListNum
-        print "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"        
+        print "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"
+        icoListCurr += 1
         continue
 
     numPagesOld = int(math.ceil( numRepliesOld / TOPICS_PER_PAGE ))
@@ -538,9 +538,9 @@ for ico in icoList:
         json.dump(icoListOld, fAnnounceList, indent=4)
     fAnnounceList.close
 
-    icoListCurr += 1
     percent = 100.0 * icoListCurr / icoListNum
     print "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"
+    icoListCurr += 1
 
 
 #with open('announceListCurrent.json', 'w') as fp:
