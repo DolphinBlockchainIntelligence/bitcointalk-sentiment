@@ -113,7 +113,7 @@ print "Announce list reduced from", announcesBeforeProcessingNum, \
 
 if len(announceListInput) != 0:
     with open(announceListOutputFilename, 'w') as fAnnounceListOutput:
-        json.dump(announceListInput, fAnnounceListOutput, sort_keys=True, indent=4)
+        json.dump(announceListInput, fAnnounceListOutput, separators=(',', ':'), sort_keys=True, indent=None)
     fAnnounceListOutput.close
 else:
     print "no topics remains"
