@@ -107,13 +107,17 @@ for announce in announceListInput.keys():
             _ = announceListInput[announce]["rank"]
         except:
             del announceListInput[announce]
-        
+
+announceListOutput = []
+for announce in announceListInput:
+    announceListOutput.append(announceListInput[announce])
+
 print "Announce list reduced from", announcesBeforeProcessingNum, \
-      "to", len(announceListInput), "items according to 'min replies' rule with CMC preserve"
+      "to", len(announceListOutput), "items according to 'min replies' rule with CMC preserve"
 
 if len(announceListInput) != 0:
     with open(announceListOutputFilename, 'w') as fAnnounceListOutput:
-        json.dump(announceListInput, fAnnounceListOutput, separators=(',', ':'), sort_keys=True, indent=None)
+        json.dump(announceListOutput, fAnnounceListOutput, separators=(',', ':'), sort_keys=True, indent=None)
     fAnnounceListOutput.close
 else:
     print "no topics remains"
