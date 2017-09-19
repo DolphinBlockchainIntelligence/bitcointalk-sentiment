@@ -60,8 +60,8 @@ def transform():
     response = {}
     for item in request.data['texts']:
         try:
-            id = item['id']
-            vector_sequence = get_sequence_matrix(get_tokens(item['text']), maxSeqLength, numFeatures, model).tolist()
+            id = item
+            vector_sequence = get_sequence_matrix(get_tokens(request.data['texts'][id]), maxSeqLength, numFeatures, model).tolist()
             response[id] = vector_sequence
         except KeyError as e:
             abort(400, 'Wrong JSON format, key %s' % e)

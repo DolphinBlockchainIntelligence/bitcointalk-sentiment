@@ -4,41 +4,80 @@ import bitcointalk_sentiment_classifier
 import json
 import datetime
 import os
+import warnings
+
 
 def main(argv):
+    warnings.filterwarnings('ignore', category=DeprecationWarning)
     input_folder = ''
-    model_file = ''
+    model_file_objectivity = ''
+    model_file_polarity = ''
     output_folder = ''
+    output_posts = ''
     announce_json = ''
     sentiment_json = ''
-    output_posts = ''
+    host = '127.0.0.1'
+    port = '1111'
+
+    options = ['help',
+               'input_folder=',
+               'obj_model=',
+               'pol_model=',
+               'output_folder=',
+               'announce_list=',
+               'sentiment_list=',
+               'posts_number=',
+               'embeddings_host=',
+               'embeddings_port=']
+
+    help_string = 'bitcointalk_batch_classifier.py ' + ' '.join(options)
 
     try:
-        opts, args = getopt.getopt(argv, "hi:m:f:a:s:n:")
+        opts, args = getopt.getopt(argv, "h", options)
     except getopt.GetoptError:
-        print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON> -n <number of output posts [number|fraction|all]>')
+        print(help_string)
         sys.exit(2)
-
     for opt, arg in opts:
-        if opt == '-h':
-            print('bitcointalk_batch_classifier.py -i <input folder> -m <model> -f <output folder> -a <announce JSON> -s <sentiment JSON> -n <number of output posts [number|fraction|all]>')
-        elif opt == '-i':
+        if opt in ['-h', '--help']:
+            print(help_string)
+            sys.exit()
+        elif opt == '--input_folder':
             input_folder = arg
-        elif opt == '-m':
-            model_file = arg
-        elif opt == '-f':
-            output_folder = arg
-        elif opt == '-a':
+        elif opt == '--obj_model':
+            model_file_objectivity = arg
+        elif opt == '--pol_model':
+            model_file_polarity = arg
+        elif opt == '--announce_json':
             announce_json = arg
-        elif opt == '-s':
+        elif opt == '--sentiment_json':
             sentiment_json = arg
-        elif opt == '-n':
+        elif opt == '--posts_number':
             output_posts = arg
+        elif opt == '--embeddings_host':
+            host = arg
+        elif opt == '--embeddings_port':
+            port = arg
 
-    batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json, output_posts)
+    batch_classify(input_folder,
+                   model_file_objectivity,
+                   model_file_polarity,
+                   output_folder,
+                   announce_json,
+                   sentiment_json,
+                   output_posts,
+                   host,
+                   port)
 
 
-def batch_classify(input_folder, model_file, output_folder, announce_json, sentiment_json, output_posts):
+def batch_classify(input_folder,
+                   model_file_objectivity,
+                   model_file_polarity,
+                   output_folder,
+                   announce_json,
+                   sentiment_json,
+                   output_posts,
+                   host,
+                   port):
 
     try:
         fLockSentiment = open('lockSentiment.txt', 'w')
@@ -69,7 +108,13 @@ def batch_classify(input_folder, model_file, output_folder, announce_json, senti
     currTopic = 0
     for topicId in toClassify:
         filename = os.path.join(input_folder, '{}.json'.format(topicId))
-        bitcointalk_sentiment_classifier.classify(filename, model_file, output_folder, output_posts)
+        bitcointalk_sentiment_classifier.classify(filename,
+                                                  model_file_objectivity,
+                                                  model_file_polarity,
+                                                  output_folder,
+                                                  output_posts,
+                                                  host,
+                                                  port)
         sentimentList[topicId] = {'dateTimeSentiment': currentTime.strftime('%Y.%m.%d %H:%M')}
         
         currTopic += 1

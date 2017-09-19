@@ -1,38 +1,88 @@
-import pandas as pd
-from datetime import datetime
-from datetime import timedelta
 import json
 import getopt
 import sys
-import pickle
+import requests
 import warnings
 import os
+from datetime import datetime
+from datetime import timedelta
+import pandas as pd
+import tensorflow as tf
+import numpy as np
 
 def main(argv):
     warnings.filterwarnings('ignore', category=DeprecationWarning)
     input_file = ''
-    model_file = ''
+    model_file_objectivity = ''
+    model_file_polarity = ''
     output_folder = ''
     output_posts = ''
+    host = '127.0.0.1'
+    port = '1111'
+
+    options = ['help',
+               'inputfile=',
+               'obj_model=',
+               'pol_model=',
+               'output_folder=',
+               'posts_number=',
+               'embeddings_host=',
+               'embeddings_port=']
+
+    help_string = 'bitcointalk_sentiment_classifier.py ' + ' '.join(options)
+
     try:
-        opts, args = getopt.getopt(argv, "hi:m:f:n:")
+        opts, args = getopt.getopt(argv, "h", options)
     except getopt.GetoptError:
-        print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder> -n <number of output posts [number|fraction|all]>')
+        print(help_string)
         sys.exit(2)
     for opt, arg in opts:
-        if opt == '-h':
-            print('bitcointalk_sentiment_classifier.py -i <inputfile> -m <model> -f <output folder> -n <number of output posts [number|fraction|all]>')
+        if opt in ['h', '--help']:
+            print(help_string)
             sys.exit()
-        elif opt == '-i':
+        elif opt == '--inputfile':
             input_file = arg
-        elif opt == '-m':
-            model_file = arg
-        elif opt == '-f':
+        elif opt == '--obj_model':
+            model_file_objectivity = arg
+        elif opt == '--pol_model':
+            model_file_polarity = arg
+        elif opt == '--output_folder':
             output_folder = arg
-        elif opt == '-n':
+        elif opt == '--posts_number':
             output_posts = arg
+        elif opt == '--embeddings_host':
+            host = arg
+        elif opt == '--embeddings_port':
+            port = arg
 
-    classify(input_file, model_file, output_folder, output_posts)
+    classify(input_file, model_file_objectivity, model_file_polarity, output_folder, output_posts, host, port)
+
+
+def get_word_vectors(host, port, texts):
+    request = {'texts': texts.to_dict()}
+    url = '{}:{}/transform'.format(host, port)
+    r = requests.post(url, data=request)
+
+    response = r.text()
+
+    idx = np.array(response.keys())
+    sequences = np.array(response.values())
+
+    return idx, sequences
+
+
+def load_model(filename):
+    sess = tf.Session()
+    saver = tf.train.import_meta_graph(filename)
+    saver.restore(sess, tf.train.latest_checkpoint('objectivity'))
+
+    graph = tf.get_default_graph()
+    data = graph.get_tensor_by_name('data:0')
+    labels = graph.get_tensor_by_name('labels:0')
+
+    prediction = graph.get_tensor_by_name('prediction:0')
+
+    return sess, data, labels, prediction
 
 
 def transform_sentiment_dict(sentiment_dict):
@@ -67,16 +117,24 @@ def transform_sentiment_dict(sentiment_dict):
     return(new_dict)
 
 
-def classify(input_file, model_file, output_folder, output_posts):
+def classify(input_file, model_file_objectivity, model_file_polarity, output_folder, output_posts, host, port):
 
     topic_df = pd.read_json(input_file, orient='index', convert_dates=False)
 
-    with open(model_file, 'rb') as file:
-        model = pickle.load(file)
+    indexes, sequences = get_word_vectors(host, port, topic_df['text'])
 
-    topic_df['smoothed_text'] = topic_df['text'].apply(lambda x: x + ' <smoothingplaceholder>')
+    sess_objectivity, data_objectivity, labels_objectivity, prediction_objectivity = load_model(model_file_objectivity)
+    sess_polarity, data_polarity, labels_polarity, prediction_polarity = load_model(model_file_polarity)
 
-    topic_df['Sentiment'] = model.predict(topic_df['smoothed_text'])
+    objectivity_predictions = np.argmax(sess_objectivity.run(prediction_objectivity,
+                                                             {data_objectivity: sequences}), 1)
+    idx_subjective = np.where(objectivity_predictions == 0)[0]
+    polarity_predictions = np.argmax(sess_polarity.run(prediction_polarity,
+                                                       {data_polarity: sequences[idx_subjective]}), 1)
+
+    objectivity_predictions[idx_subjective] = polarity_predictions
+
+    topic_df['Sentiment'] = objectivity_predictions
 
     topic_df.drop(labels=['smoothed_text'], axis=1, inplace=True)
 
