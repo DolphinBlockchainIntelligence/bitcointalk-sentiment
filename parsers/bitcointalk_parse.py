@@ -337,7 +337,7 @@ try:
             dataDirPath = optValue
 
 except getopt.GetoptError as e:
-    print sys.argv[0], ' -s <start page> -n <num pages> [-t <topic id>]'
+    print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d path/to/data/dir/]'
     sys.exit(1)
 
 print "Parsing topics from page ", currentPage, " to page ", totalPages
