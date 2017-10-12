@@ -1,0 +1,2 @@
+model_checkpoint_path: "objectivity_network.cpkt"
+all_model_checkpoint_paths: "objectivity_network.cpkt"

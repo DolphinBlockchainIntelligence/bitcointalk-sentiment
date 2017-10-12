@@ -1,0 +1,2 @@
+model_checkpoint_path: "sentiment_network.cpkt"
+all_model_checkpoint_paths: "sentiment_network.cpkt"
