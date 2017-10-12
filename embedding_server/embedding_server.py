@@ -4,6 +4,7 @@ import numpy as np
 import gensim
 import re
 import string
+import json
 
 app = Flask(__name__)
 
@@ -34,7 +35,14 @@ def init():
     global model
     try:
         model_path = request.form['filepath']
-        is_binary = bool(request.form['is_binary'])
+        is_binary = bool()
+        is_binary_str = request.form['is_binary']
+        if is_binary_str == 'True':
+            is_binary = True
+        elif is_binary_str == 'False':
+            is_binary = False
+        else:
+            abort(400, 'Incorrect is_binary value. Value must be in [\'True\', \'False\']')
         model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=is_binary)
     except PermissionError:
         abort(400, 'Could not load vectors - invalid path (%s)' % model_path)
@@ -52,19 +60,20 @@ def check(word):
 
 @app.route("/transform", methods=['POST'])
 def transform():
-    if model is None:
-        abort(500, 'Model is not initialized.')
     global maxSeqLength
     global numFeatures
     global model
+    if model is None:
+        abort(500, 'Model is not initialized.')
     response = {}
-    for item in request.data['texts']:
+    req = json.loads(request.get_json())
+    for item in req:
         try:
             id = item
-            vector_sequence = get_sequence_matrix(get_tokens(request.data['texts'][id]), maxSeqLength, numFeatures, model).tolist()
+            vector_sequence = get_sequence_matrix(get_tokens(req[id]), maxSeqLength, numFeatures, model).tolist()
             response[id] = vector_sequence
         except KeyError as e:
             abort(400, 'Wrong JSON format, key %s' % e)
         except Exception as e:
             abort(500, 'Internal server error: %s' % str(e))
-        return jsonify(response)
+    return jsonify(response)

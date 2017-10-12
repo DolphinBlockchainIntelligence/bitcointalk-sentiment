@@ -59,30 +59,39 @@ def main(argv):
 
 
 def get_word_vectors(host, port, texts):
-    request = {'texts': texts.to_dict()}
-    url = '{}:{}/transform'.format(host, port)
-    r = requests.post(url, data=request)
+    texts.index = texts.index.astype(str)
+    request = json.dumps(texts.to_dict())
+    url = 'http://{}:{}/transform'.format(host, port)
+    r = requests.post(url, json=request)
 
-    response = r.text()
+    if r.status_code != 200:
+        print("Embedding Server Error:")
+        print(r.text)
+        sys.exit()
 
-    idx = np.array(response.keys())
-    sequences = np.array(response.values())
+    response = json.loads(r.text)
+
+    idx = np.array(list(response.keys()))
+    sequences = np.array(list(response.values()))
 
     return idx, sequences
 
 
 def load_model(filename):
-    sess = tf.Session()
-    saver = tf.train.import_meta_graph(filename)
-    saver.restore(sess, tf.train.latest_checkpoint('objectivity'))
+    print(filename)
+    graph = tf.Graph()
+    with graph.as_default():
 
-    graph = tf.get_default_graph()
-    data = graph.get_tensor_by_name('data:0')
-    labels = graph.get_tensor_by_name('labels:0')
+        saver = tf.train.import_meta_graph(filename, clear_devices=True)
+        sess = tf.Session()
+        saver.restore(sess, tf.train.latest_checkpoint(os.path.split(filename)[0]))
 
-    prediction = graph.get_tensor_by_name('prediction:0')
+        data = graph.get_tensor_by_name('data:0')
+        labels = graph.get_tensor_by_name('labels:0')
 
-    return sess, data, labels, prediction
+        prediction = graph.get_tensor_by_name('prediction:0')
+
+    return graph, sess, data, labels, prediction
 
 
 def transform_sentiment_dict(sentiment_dict):
@@ -123,20 +132,24 @@ def classify(input_file, model_file_objectivity, model_file_polarity, output_fol
 
     indexes, sequences = get_word_vectors(host, port, topic_df['text'])
 
-    sess_objectivity, data_objectivity, labels_objectivity, prediction_objectivity = load_model(model_file_objectivity)
-    sess_polarity, data_polarity, labels_polarity, prediction_polarity = load_model(model_file_polarity)
+    graph_objectivity, sess_objectivity, data_objectivity, labels_objectivity, prediction_objectivity = load_model(model_file_objectivity)
 
-    objectivity_predictions = np.argmax(sess_objectivity.run(prediction_objectivity,
-                                                             {data_objectivity: sequences}), 1)
+    with graph_objectivity.as_default():
+        objectivity_predictions = np.argmax(sess_objectivity.run(prediction_objectivity,
+                                                                {data_objectivity: sequences}), 1)
     idx_subjective = np.where(objectivity_predictions == 0)[0]
-    polarity_predictions = np.argmax(sess_polarity.run(prediction_polarity,
-                                                       {data_polarity: sequences[idx_subjective]}), 1)
+
+    sess_objectivity.close()
+
+    graph_polarity, sess_polarity, data_polarity, labels_polarity, prediction_polarity = load_model(model_file_polarity)
+
+    with graph_polarity.as_default():
+        polarity_predictions = 2*np.argmax(sess_polarity.run(prediction_polarity,
+                                                          {data_polarity: sequences[idx_subjective]}), 1)
 
     objectivity_predictions[idx_subjective] = polarity_predictions
 
     topic_df['Sentiment'] = objectivity_predictions
-
-    topic_df.drop(labels=['smoothed_text'], axis=1, inplace=True)
 
     def checkTimeFormat(time_string):
         try:
