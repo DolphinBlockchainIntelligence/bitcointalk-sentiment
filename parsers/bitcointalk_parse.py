@@ -6,12 +6,12 @@ from time import gmtime, strftime, localtime
 from datetime import datetime
 
 TOPICS_PER_PAGE          = 20
-PARSING_SLEEP            = 20
-PARSING_SLEEP_RAND_RANGE = 8     # should be no greater than PARSING_SLEEP
-TIMEOUT_SLEEP            = 20
-TIMEOUT_NUM              = 5
-TIMEOUT_RETRY            = 600
-TIMEOUT_RAND_RANGE       = 20    # should be no greater than TIMEOUT_RETRY
+PARSING_SLEEP            = 2     # 20
+PARSING_SLEEP_RAND_RANGE = 1     # 8    should be no greater than PARSING_SLEEP
+TIMEOUT_SLEEP            = 2     # 20
+TIMEOUT_NUM              = 5     #
+TIMEOUT_RETRY            = 1     # 600
+TIMEOUT_RAND_RANGE       = 1     # 20   should be no greater than TIMEOUT_RETRY
 FIRST_LAST_ONLY          = True
 FULL_TOPIC_POSTS         = False
 DATA_FILES_DIR           = "../data/"
@@ -76,10 +76,7 @@ def requestURL(callPoint, url):
     time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
     while True:
         try:
-            print url
-            print headers
-            print proxy
-            r = requests.get(url, headers = headers, proxies = proxy)
+            r = requests.get(url, headers = headers, proxies = proxy, timeout = 20)
             if r.text.find('Busy, try again (504)') != -1:
                 print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
