@@ -7,7 +7,7 @@ from datetime import datetime
 
 TOPICS_PER_PAGE          = 20
 PARSING_SLEEP            = 20
-PARSING_SLEEP_RAND_RANGE = 8
+PARSING_SLEEP_RAND_RANGE = 8     # should be no greater than PARSING_SLEEP
 TIMEOUT_SLEEP            = 20
 TIMEOUT_NUM              = 5
 TIMEOUT_RETRY            = 600
@@ -17,15 +17,19 @@ FULL_TOPIC_POSTS         = False
 DATA_FILES_DIR           = "../data/"
 PARSED_PAGES_SAVE_POSTS  = 20
 TOP_CMC_ITEMS            = 400   # top coinmarketcap items to parse
+PROXY_TIMEOUT            = 20
 
+# globals:
 headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 urlStart = 'https://bitcointalk.org/index.php?board=159.0'
 urlTemplate = 'https://bitcointalk.org/index.php?board=159.'
 urlTopicTemplate = 'https://bitcointalk.org/index.php?topic='
 
-proxies = [ ]
+
+# globals for rotateProxy()
+proxies = []
 proxy_cur = 0
-proxy = proxies[proxy_cur]
+proxy = {}
 
 def rotateProxy():
     global proxy_cur, proxy, proxies
@@ -35,14 +39,84 @@ def rotateProxy():
     proxy = proxies[proxy_cur]
     print "Proxy rotated"
 
+def updateProxyList():
+    global proxies
+    while True:
+        while True:
+            try:
+                r = requests.get('http://fineproxy.org/freshproxyfull/#more-4', headers = headers)
+                break
+            except exceptions.BaseException as e:
+                print 'Error getting proxy list:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY)
+    
+        #print r.status_code
+        break
+    
+    parserHtml = HTMLParser()
+    tree = html.fromstring(r.text)
+    proxyList = tree.xpath('//div[@class = "entry-content"]/p')[0]
+    pattern = r'\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,4})'
+    regexpr = re.compile(pattern)    
+    for item in proxyList.xpath('descendant-or-self::text()'):
+        text = parserHtml.unescape(item).encode('utf-8')
+        #print('"' + text + '"')
+        try:
+            ip, port = regexpr.match(text).groups()
+        except AttributeError:
+            # print('Error: "' + text + '"')
+            continue
+        
+        proxies.append(ip+':'+port)
+        
+# globals for requestURL(...)
+def requestURL(callPoint, url):
+    time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
+    while True:
+        try:
+            r = requests.get(url, headers = headers, proxies = proxy)
+            if r.text.find('Busy, try again (504)') != -1:
+                print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                rotateProxy()
+                continue
+            elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
+                print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                rotateProxy()
+                continue
+            elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
+                print callPoint, ': response: ', r.status_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
+                f = open("error_page_500.dmp", "w")
+                f.write(r.text)
+                f.close()
+                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                rotateProxy()
+                continue
+            elif r.status_code != 200:
+                print callPoint, ': response: ', r.status_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                rotateProxy()
+                continue
+            else:
+                break
+        except exceptions.BaseException as e:
+            # print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+            print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+            time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+            rotateProxy()
+    
+    return r.text
 
-#####################################################
+
 def parseIcoList(url,headers,skipLines,treeIn,icoList):
 
     if treeIn == "":
+        '''
         time.sleep(PARSING_SLEEP)
         while True:
             try:
+                
                 r = requests.get(url, headers = headers, proxies = proxy)
                 if r.text.find('Busy, try again (504)') != -1:
                     print 'parseIcoList: Response: ', r.status_code, ', Error "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
@@ -70,8 +144,9 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
                 print 'parseIcoList: Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY)
                 rotateProxy()
-
-        tree = html.fromstring(r.text)
+        '''
+        text = requestURL('parseIcoList', url)
+        tree = html.fromstring(text)
     else:
         tree = treeIn
 
@@ -82,7 +157,7 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
         rows = table.xpath(".//tr")
     except Exception, e:
         print >> sys.stderr, "Exception parsing ICO list, url: ", url
-        print >> sys.stderr, "Exception: %s" % str(e)
+        print >> sys.stderr, "Exception: %s (dumped to error_page.dmp" % str(e)
         f = open("error_page.dmp", "w")
         f.write(r.text)
         f.close()
@@ -140,8 +215,9 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
 
     # count num of pages of topic
     time.sleep(PARSING_SLEEP)
-    tr = requests.get(topicURL, headers = headers, proxies = proxy)
-    ttree = html.fromstring(tr.text)
+    # tr = requests.get(topicURL, headers = headers, proxies = proxy)
+    text = requestURL('parseTopicPages', topicURL)
+    ttree = html.fromstring(text)
 
     tPages = ttree.xpath('//a[@class = "navPages"]')
     tTotalPages = tPageNum = 0
@@ -196,6 +272,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
 def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, firstPostUserNameAndUrl):
 
     if treeIn == "":
+        '''
         time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
         #r = requests.get(url, headers = headers)
         while True:
@@ -228,8 +305,9 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, fi
                 print 'parseTopicPagePosts: Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
-
-        tree = html.fromstring(r.text)
+        '''
+        text = requestURL('parseTopicPagePosts', url)
+        tree = html.fromstring(text)
     else:
         tree = treeIn
 
@@ -315,9 +393,13 @@ except:
     print('Another process is working. Exiting.')
     sys.exit(1)
 
+updateProxyList()
+rotateProxy()
+
 # count num of pages
-r = requests.get(urlStart, headers = headers, proxies = proxy)
-tree = html.fromstring(r.text)
+# r = requests.get(urlStart, headers = headers, proxies = proxy)
+text = requestURL('countNumOfPages', urlStart)
+tree = html.fromstring(text)
 
 pages = tree.xpath('//a[@class = "navPages"]')
 totalPages = 0
