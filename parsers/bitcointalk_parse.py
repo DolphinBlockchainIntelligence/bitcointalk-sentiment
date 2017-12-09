@@ -36,7 +36,7 @@ def rotateProxy():
     proxy_cur += 1
     if proxy_cur == len(proxies):
         proxy_cur = 0
-    proxy = proxies[proxy_cur]
+    proxy = { 'https': proxies[proxy_cur] }
     print "Proxy rotated"
 
 def updateProxyList():
@@ -68,12 +68,17 @@ def updateProxyList():
             continue
         
         proxies.append(ip+':'+port)
+    
+    print "Updated proxy list contains ", len(proxies), " number of proxies"
         
 # globals for requestURL(...)
 def requestURL(callPoint, url):
     time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
     while True:
         try:
+            print url
+            print headers
+            print proxy
             r = requests.get(url, headers = headers, proxies = proxy)
             if r.text.find('Busy, try again (504)') != -1:
                 print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
@@ -306,6 +311,7 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, fi
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
         '''
+        dateTimeOfRequest = localtime()
         text = requestURL('parseTopicPagePosts', url)
         tree = html.fromstring(text)
     else:
