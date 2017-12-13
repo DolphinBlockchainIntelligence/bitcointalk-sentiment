@@ -97,13 +97,19 @@ def requestURL(callPoint, url):
                 rotateProxy()
                 continue
             elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
-                print "proxy failed:  ", proxy['https']
+                print "Forum failed, need to take a timeout"
                 #print callPoint, ': response: ', r.status_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
                 f = open("error_page_500.dmp", "w")
                 f.write(r.text)
                 f.close()
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
-                rotateProxy()
+                rotateProxy(failed=False)
+                continue
+            elif r.text.find('Sorry, SMF was unable to connect to the database') != -1:
+                print "Forum failed, need to take a timeout"
+                #print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY * 10 + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                rotateProxy(failed=False)
                 continue
             elif r.status_code != 200:
                 print "proxy failed:  ", proxy['https']
