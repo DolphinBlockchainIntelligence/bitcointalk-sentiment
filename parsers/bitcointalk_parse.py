@@ -17,7 +17,7 @@ FULL_TOPIC_POSTS         = False
 DATA_FILES_DIR           = "../data/"
 PARSED_PAGES_SAVE_POSTS  = 20
 TOP_CMC_ITEMS            = 400   # top coinmarketcap items to parse
-PROXY_TIMEOUT            = 20
+PROXY_TIMEOUT            = 5
 
 # globals:
 headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
@@ -25,58 +25,65 @@ urlStart = 'https://bitcointalk.org/index.php?board=159.0'
 urlTemplate = 'https://bitcointalk.org/index.php?board=159.'
 urlTopicTemplate = 'https://bitcointalk.org/index.php?topic='
 
-
 # globals for rotateProxy()
 proxies = []
 proxy_cur = 0
+proxy_rotations = 1
 proxy = {}
 
-def rotateProxy():
-    global proxy_cur, proxy, proxies
-    proxy_cur += 1
-    if proxy_cur == len(proxies):
-        proxy_cur = 0
-    proxy = { 'https': proxies[proxy_cur] }
-    print "Proxy rotated"
-
-def updateProxyList():
-    global proxies
+def rotateProxy(failed=True):
+    global proxy_cur, proxy, proxy_rotations
+    
+    if failed:
+        proxies[proxy_cur]["failed"] += 1
+    
+    proxy_rotations_old = proxy_rotations
     while True:
-        while True:
-            try:
-                r = requests.get('http://fineproxy.org/freshproxyfull/#more-4', headers = headers)
-                break
-            except exceptions.BaseException as e:
-                print 'Error getting proxy list:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY)
+        proxy_cur += 1
+        if proxy_cur == len(proxies):
+            proxy_cur = 0
+            proxy_rotations += 1
+            if proxy_rotations >= proxy_rotations_old + 2:
+                print "No working proxies anymore, emergency exit"
+                sys.exit(1)
+        if proxies[proxy_cur]["failed"] > 2:
+            print "Proxy ", proxies[proxy_cur]["proxy"], " failed 3 times - no more use it"
+            continue
+        else:
+            proxy = { 'https': proxies[proxy_cur]["proxy"] }
+            break
+
+    print "Proxy rotated"
     
-        #print r.status_code
-        break
+    #if proxy_rotations % 5 == 0:
+    #    readProxyList()
+
+def readProxyList():
+    global proxies
     
-    parserHtml = HTMLParser()
-    tree = html.fromstring(r.text)
-    proxyList = tree.xpath('//div[@class = "entry-content"]/p')[0]
-    pattern = r'\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,4})'
-    regexpr = re.compile(pattern)    
-    for item in proxyList.xpath('descendant-or-self::text()'):
-        text = parserHtml.unescape(item).encode('utf-8')
-        #print('"' + text + '"')
+    pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,4})'
+    regexpr = re.compile(pattern)
+    
+    proxies = []
+    
+    f = open("proxies.txt", "r")
+    for line in f:
         try:
-            ip, port = regexpr.match(text).groups()
+            ip, port = regexpr.match(line.strip("\n")).groups()
         except AttributeError:
-            # print('Error: "' + text + '"')
             continue
         
-        proxies.append(ip+':'+port)
-    
-    print "Updated proxy list contains ", len(proxies), " number of proxies"
+        proxies.append({ "proxy": ip+':'+port, "failed": 0 })
+        
+    print "# of proxies read: ", len(proxies)
+    f.close()    
         
 # globals for requestURL(...)
 def requestURL(callPoint, url):
     time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
     while True:
         try:
-            r = requests.get(url, headers = headers, proxies = proxy, timeout = 20)
+            r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
             if r.text.find('Busy, try again (504)') != -1:
                 print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
@@ -108,6 +115,7 @@ def requestURL(callPoint, url):
             time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
             rotateProxy()
     
+    rotateProxy(failed=False)
     return r.text
 
 
@@ -396,7 +404,7 @@ except:
     print('Another process is working. Exiting.')
     sys.exit(1)
 
-updateProxyList()
+readProxyList()
 rotateProxy()
 
 # count num of pages
@@ -444,7 +452,7 @@ try:
             dataDirPath = optValue
 
 except getopt.GetoptError as e:
-    print sys.argv[0], ' -s <start page> -n <num pages> [-t <topic id>]'
+    print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>]'
     sys.exit(1)
 
 print "Parsing topics from page ", currentPage, " to page ", totalPages
