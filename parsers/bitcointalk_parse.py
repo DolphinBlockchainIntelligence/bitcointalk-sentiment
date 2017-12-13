@@ -17,7 +17,7 @@ FULL_TOPIC_POSTS         = False
 DATA_FILES_DIR           = "../data/"
 PARSED_PAGES_SAVE_POSTS  = 20
 TOP_CMC_ITEMS            = 400   # top coinmarketcap items to parse
-PROXY_TIMEOUT            = 5
+PROXY_TIMEOUT            = 7
 
 # globals:
 headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
@@ -46,8 +46,8 @@ def rotateProxy(failed=True):
             if proxy_rotations >= proxy_rotations_old + 2:
                 print "No working proxies anymore, emergency exit"
                 sys.exit(1)
-        if proxies[proxy_cur]["failed"] > 2:
-            print "Proxy ", proxies[proxy_cur]["proxy"], " failed 3 times - no more use it"
+        if proxies[proxy_cur]["failed"] > 0:
+            print "Proxy ", proxies[proxy_cur]["proxy"], " failed - no more use it"
             continue
         else:
             proxy = { 'https': proxies[proxy_cur]["proxy"] }
@@ -85,19 +85,19 @@ def requestURL(callPoint, url):
         try:
             r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
             if r.text.find('Busy, try again (504)') != -1:
-                print "proxy failed: ", proxy['https']
+                print "proxy failed:  ", proxy['https']
                 #print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
             elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
-                print "proxy failed: ", proxy['https']
+                print "proxy failed:  ", proxy['https']
                 #print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
             elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
-                print "proxy failed: ", proxy['https']
+                print "proxy failed:  ", proxy['https']
                 #print callPoint, ': response: ', r.status_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
                 f = open("error_page_500.dmp", "w")
                 f.write(r.text)
@@ -106,7 +106,7 @@ def requestURL(callPoint, url):
                 rotateProxy()
                 continue
             elif r.status_code != 200:
-                print "proxy failed: ", proxy['https']
+                print "proxy failed:  ", proxy['https']
                 #print callPoint, ': response: ', r.status_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
@@ -114,13 +114,14 @@ def requestURL(callPoint, url):
             else:
                 break
         except exceptions.BaseException as e:
-            print "proxy failed: ", proxy['https']
+            print "proxy failed:  ", proxy['https']
             # print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
             # print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
             time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
             rotateProxy()
     
     rotateProxy(failed=False)
+    print "URL request success" 
     return r.text
 
 
@@ -174,7 +175,7 @@ def parseIcoList(url,headers,skipLines,treeIn,icoList):
         print >> sys.stderr, "Exception parsing ICO list, url: ", url
         print >> sys.stderr, "Exception: %s (dumped to error_page.dmp" % str(e)
         f = open("error_page.dmp", "w")
-        f.write(r.text)
+        f.write(text)
         f.close()
         raise
 
