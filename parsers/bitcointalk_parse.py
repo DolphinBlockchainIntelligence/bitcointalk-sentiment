@@ -44,9 +44,14 @@ def rotateProxy(failed=True):
             proxy_cur = 0
             proxy_rotations += 1
             if proxy_rotations >= proxy_rotations_old + 2:
-                print "No working proxies anymore, emergency exit"
-                sys.exit(1)
-        if proxies[proxy_cur]["failed"] > 0:
+                print "No working proxies anymore, reread file with proxies and reset status"
+                proxies = []
+                proxy_cur = 0                
+                proxy_rotations = 1
+                readProxyList()
+                rotateProxy(failed=False)                
+                
+        if proxies[proxy_cur]["failed"] > 1:
             print "Proxy ", proxies[proxy_cur]["proxy"], " failed - no more use it"
             continue
         else:
@@ -417,7 +422,7 @@ except:
     sys.exit(1)
 
 readProxyList()
-rotateProxy()
+rotateProxy(failed=False)
 
 # count num of pages
 # r = requests.get(urlStart, headers = headers, proxies = proxy)
