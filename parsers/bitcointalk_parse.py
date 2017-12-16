@@ -45,7 +45,6 @@ def rotateProxy(failed=True):
             proxy_rotations += 1
             if proxy_rotations >= proxy_rotations_old + 2:
                 print "No working proxies anymore, reread file with proxies and reset status"
-                proxies = []
                 proxy_cur = 0                
                 proxy_rotations = 1
                 readProxyList()
@@ -58,7 +57,7 @@ def rotateProxy(failed=True):
             proxy = { 'https': proxies[proxy_cur]["proxy"] }
             break
 
-    print "Proxy rotated: ", proxies[proxy_cur]["proxy"]
+    print "proxy rotated: ", proxies[proxy_cur]["proxy"]
     
     #if proxy_rotations % 5 == 0:
     #    readProxyList()
