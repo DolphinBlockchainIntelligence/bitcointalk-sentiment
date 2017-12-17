@@ -20,7 +20,8 @@ TOP_CMC_ITEMS            = 400   # top coinmarketcap items to parse
 PROXY_TIMEOUT            = 7
 
 # globals:
-headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
+# headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
+headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
 urlStart = 'https://bitcointalk.org/index.php?board=159.0'
 urlTemplate = 'https://bitcointalk.org/index.php?board=159.'
 urlTopicTemplate = 'https://bitcointalk.org/index.php?topic='
