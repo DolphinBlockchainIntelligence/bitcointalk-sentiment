@@ -6,12 +6,12 @@ from time import gmtime, strftime, localtime
 from datetime import datetime
 
 TOPICS_PER_PAGE          = 20
-PARSING_SLEEP            = 2     # 20
-PARSING_SLEEP_RAND_RANGE = 1     # 8    should be no greater than PARSING_SLEEP
-TIMEOUT_SLEEP            = 2     # 20
+PARSING_SLEEP            = 20    # 20
+PARSING_SLEEP_RAND_RANGE = 8     # 8    should be no greater than PARSING_SLEEP
+TIMEOUT_SLEEP            = 20    # 20
 TIMEOUT_NUM              = 5     #
-TIMEOUT_RETRY            = 1     # 600
-TIMEOUT_RAND_RANGE       = 1     # 20   should be no greater than TIMEOUT_RETRY
+TIMEOUT_RETRY            = 600   # 600
+TIMEOUT_RAND_RANGE       = 20    # 20   should be no greater than TIMEOUT_RETRY
 FIRST_LAST_ONLY          = True
 FULL_TOPIC_POSTS         = False
 DATA_FILES_DIR           = "../data/"
@@ -20,6 +20,8 @@ TOP_CMC_ITEMS            = 400   # top coinmarketcap items to parse
 PROXY_TIMEOUT            = 7
 
 # globals:
+verboseMode = False
+
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
 urlStart = 'https://bitcointalk.org/index.php?board=159.0'
@@ -71,14 +73,18 @@ def readProxyList():
     
     proxies = []
     
-    f = open("proxies.txt", "r")
-    for line in f:
-        try:
-            ip, port = regexpr.match(line.strip("\n")).groups()
-        except AttributeError:
-            continue
-        
-        proxies.append({ "proxy": ip+':'+port, "failed": 0 })
+    try:
+        f = open("proxies.txt", "r")
+        for line in f:
+            try:
+                ip, port = regexpr.match(line.strip("\n")).groups()
+            except AttributeError:
+                continue
+            
+            proxies.append({ "proxy": ip+':'+port, "failed": 0 })
+            
+    except exceptions.BaseException as e:
+        pass
         
     print "# of proxies read: ", len(proxies)
     f.close()    
@@ -91,19 +97,22 @@ def requestURL(callPoint, url):
             r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
             if r.text.find('Busy, try again (504)') != -1:
                 print "proxy failed:  ", proxy['https']
-                #print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                if verboseMode:
+                    print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
             elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
                 print "proxy failed:  ", proxy['https']
-                #print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                if verboseMode:
+                    print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
             elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
                 print "Forum failed, need to take a timeout"
-                #print callPoint, ': response: ', r.status_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
+                if verboseMode:
+                    print callPoint, ': response: ', r.status_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
                 f = open("error_page_500.dmp", "w")
                 f.write(r.text)
                 f.close()
@@ -112,13 +121,15 @@ def requestURL(callPoint, url):
                 continue
             elif r.text.find('Sorry, SMF was unable to connect to the database') != -1:
                 print "Forum failed, need to take a timeout"
-                #print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                if verboseMode:
+                    print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY * 10 + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy(failed=False)
                 continue
             elif r.status_code != 200:
                 print "proxy failed:  ", proxy['https']
-                #print callPoint, ': response: ', r.status_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                if verboseMode:
+                    print callPoint, ': response: ', r.status_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
@@ -126,8 +137,9 @@ def requestURL(callPoint, url):
                 break
         except exceptions.BaseException as e:
             print "proxy failed:  ", proxy['https']
-            # print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-            # print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+            if verboseMode:
+                print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
             time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
             rotateProxy()
     
@@ -467,9 +479,11 @@ try:
             onlyOneTopicId  = optValue
         elif optName == '-d':
             dataDirPath = optValue
+        elif optName == '-v':
+            verboseMode = True            
 
 except getopt.GetoptError as e:
-    print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>]'
+    print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>] [-v (switch verbose mode on)]'
     sys.exit(1)
 
 print "Parsing topics from page ", currentPage, " to page ", totalPages
