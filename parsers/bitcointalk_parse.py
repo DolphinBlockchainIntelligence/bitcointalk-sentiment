@@ -82,12 +82,12 @@ def readProxyList():
                 continue
             
             proxies.append({ "proxy": ip+':'+port, "failed": 0 })
+            f.close()
             
     except exceptions.BaseException as e:
         pass
         
     print "# of proxies read: ", len(proxies)
-    f.close()    
         
 # globals for requestURL(...)
 def requestURL(callPoint, url):
