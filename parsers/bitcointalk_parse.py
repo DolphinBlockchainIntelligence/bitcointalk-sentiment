@@ -37,6 +37,9 @@ proxy = {}
 def rotateProxy(failed=True):
     global proxy_cur, proxy, proxy_rotations
     
+    if not proxies:
+        return
+        
     if failed:
         proxies[proxy_cur]["failed"] += 1
     
