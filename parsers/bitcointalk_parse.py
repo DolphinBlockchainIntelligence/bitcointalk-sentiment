@@ -99,14 +99,16 @@ def requestURL(callPoint, url):
         try:
             r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
             if r.text.find('Busy, try again (504)') != -1:
-                print "proxy failed:  ", proxy['https']
+                if proxy:
+                    print "proxy failed:  ", proxy['https']
                 if verboseMode:
                     print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
             elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
-                print "proxy failed:  ", proxy['https']
+                if proxy:
+                    print "proxy failed:  ", proxy['https']
                 if verboseMode:
                     print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
@@ -130,7 +132,8 @@ def requestURL(callPoint, url):
                 rotateProxy(failed=False)
                 continue
             elif r.status_code != 200:
-                print "proxy failed:  ", proxy['https']
+                if proxy:
+                    print "proxy failed:  ", proxy['https']
                 if verboseMode:
                     print callPoint, ': response: ', r.status_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
@@ -139,7 +142,8 @@ def requestURL(callPoint, url):
             else:
                 break
         except exceptions.BaseException as e:
-            print "proxy failed:  ", proxy['https']
+            if proxy:
+                print "proxy failed:  ", proxy['https']
             if verboseMode:
                 print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
