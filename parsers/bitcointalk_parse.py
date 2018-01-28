@@ -366,7 +366,7 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, fi
         print >> sys.stderr, "Exception parsing topic page posts, url: ", url
         print >> sys.stderr, "Exception: %s" % str(e)
         f = open("error_page.dmp", "w")
-        f.write(r.text)
+        f.write(text)
         f.close()
         raise
 
