@@ -145,7 +145,7 @@ def requestURL(callPoint, url):
             if proxy:
                 print "proxy failed:  ", proxy['https']
             if verboseMode:
-                print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                print 'Error:', e.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
             time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
             rotateProxy()
