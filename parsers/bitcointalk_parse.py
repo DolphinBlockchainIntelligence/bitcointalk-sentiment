@@ -4,6 +4,8 @@ from lxml import html, etree
 from HTMLParser import HTMLParser
 from time import gmtime, strftime, localtime
 from datetime import datetime
+from pyvirtualdisplay import Display
+from selenium import webdriver
 
 TOPICS_PER_PAGE          = 20
 PARSING_SLEEP            = 20    # 20
@@ -21,6 +23,9 @@ PROXY_TIMEOUT            = 7
 
 # globals:
 verboseMode = False
+browserMode = False
+display = Display(visible=0, size=(1024, 768))
+display.start()
 
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
@@ -94,48 +99,60 @@ def readProxyList():
         
 # globals for requestURL(...)
 def requestURL(callPoint, url):
+    global verboseMode, browserMode
+    
     time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
     while True:
         try:
-            r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
-            if r.text.find('Busy, try again (504)') != -1:
+            if browserMode:
+                browser = webdriver.Firefox()
+                browser.get(url)
+                rtext = browser.page_source
+                rcode = 200
+                
+            else:
+                r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
+                rtext = r.text
+                rcode = r.status_code
+                
+            if rtext.find('Busy, try again (504)') != -1:
                 if proxy:
                     print "proxy failed:  ", proxy['https']
                 if verboseMode:
-                    print callPoint, ': response: ', r.status_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    print callPoint, ': response: ', rstatus_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
-            elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
+            elif rtext.find('<h1>Busy, try again (502)</h1>') != -1:
                 if proxy:
                     print "proxy failed:  ", proxy['https']
                 if verboseMode:
-                    print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    print callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
-            elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
+            elif rtext.find('<head><title>500 Internal Server Error</title></head>') != -1:
                 print "Forum failed, need to take a timeout"
                 if verboseMode:
-                    print callPoint, ': response: ', r.status_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
+                    print callPoint, ': response: ', rstatus_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
                 f = open("error_page_500.dmp", "w")
-                f.write(r.text)
+                f.write(rtext)
                 f.close()
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy(failed=False)
                 continue
-            elif r.text.find('Sorry, SMF was unable to connect to the database') != -1:
+            elif rtext.find('Sorry, SMF was unable to connect to the database') != -1:
                 print "Forum failed, need to take a timeout"
                 if verboseMode:
-                    print callPoint, ': response: ', r.status_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    print callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY * 10 + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy(failed=False)
                 continue
-            elif r.status_code != 200:
+            elif rstatus_code != 200:
                 if proxy:
                     print "proxy failed:  ", proxy['https']
                 if verboseMode:
-                    print callPoint, ': response: ', r.status_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                    print callPoint, ': response: ', rstatus_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 rotateProxy()
                 continue
@@ -152,7 +169,7 @@ def requestURL(callPoint, url):
     
     rotateProxy(failed=False)
     print "URL request success" 
-    return r.text
+    return rtext
 
 
 def parseIcoList(url,headers,skipLines,treeIn,icoList):
@@ -487,7 +504,9 @@ try:
         elif optName == '-d':
             dataDirPath = optValue
         elif optName == '-v':
-            verboseMode = True            
+            verboseMode = True
+        elif optName == '-b':
+            browserMode = True        
 
 except getopt.GetoptError as e:
     print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>] [-v (switch verbose mode on)]'
