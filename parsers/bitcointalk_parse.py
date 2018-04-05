@@ -108,12 +108,12 @@ def requestURL(callPoint, url):
                 browser = webdriver.Firefox()
                 browser.get(url)
                 rtext = browser.page_source
-                rcode = 200
+                rstatus_code = 200
                 
             else:
                 r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
                 rtext = r.text
-                rcode = r.status_code
+                rstatus_code = r.status_code
                 
             if rtext.find('Busy, try again (504)') != -1:
                 if proxy:
@@ -457,29 +457,6 @@ except:
     print('Another process is working. Exiting.')
     sys.exit(1)
 
-readProxyList()
-rotateProxy(failed=False)
-
-# count num of pages
-# r = requests.get(urlStart, headers = headers, proxies = proxy)
-text = requestURL('countNumOfPages', urlStart)
-tree = html.fromstring(text)
-
-pages = tree.xpath('//a[@class = "navPages"]')
-totalPages = 0
-for page in pages:
-    try:
-        pageNum  = int( page.xpath('text()')[0].encode('utf-8') )
-    except:
-        pass
-
-    if totalPages < pageNum:
-        totalPages = pageNum
-
-print "Total pages: ", totalPages
-
-# parsing ICO list:
-print "Parsing ICO announcements topics list"
 
 # default values:
 # read from page 1 to totalPages
@@ -511,6 +488,31 @@ try:
 except getopt.GetoptError as e:
     print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>] [-v (switch verbose mode on)]'
     sys.exit(1)
+
+
+readProxyList()
+rotateProxy(failed=False)
+
+# count num of pages
+# r = requests.get(urlStart, headers = headers, proxies = proxy)
+text = requestURL('countNumOfPages', urlStart)
+tree = html.fromstring(text)
+
+pages = tree.xpath('//a[@class = "navPages"]')
+totalPages = 0
+for page in pages:
+    try:
+        pageNum  = int( page.xpath('text()')[0].encode('utf-8') )
+    except:
+        pass
+
+    if totalPages < pageNum:
+        totalPages = pageNum
+
+print "Total pages: ", totalPages
+
+# parsing ICO list:
+print "Parsing ICO announcements topics list"
 
 print "Parsing topics from page ", currentPage, " to page ", totalPages
 icoList = {}
