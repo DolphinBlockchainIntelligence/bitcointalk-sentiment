@@ -459,10 +459,9 @@ except:
 
 
 # default values:
-# read from page 1 to totalPages
-currentPage  = 1
-# temporary limit number of pages
-totalPages   = 1
+# read from page 1
+currentPage = 1
+lastPage = 0
 # default data dir path
 dataDirPath = DATA_FILES_DIR
 
@@ -473,9 +472,9 @@ try:
     opts, args = getopt.getopt(sys.argv[1:], "s:n:t:d:v:")
     for optName, optValue in opts:
         if optName == '-s':
-            currentPage  = int( optValue )
+            currentPage = int( optValue )
         elif optName == '-n':
-            totalPages   = int( optValue )
+            lastPage = int( optValue )
         elif optName == '-t':
             onlyOneTopicId  = optValue
         elif optName == '-d':
@@ -499,26 +498,29 @@ text = requestURL('countNumOfPages', urlStart)
 tree = html.fromstring(text)
 
 pages = tree.xpath('//a[@class = "navPages"]')
-totalPages = 0
+maxPages = 0
 for page in pages:
     try:
         pageNum  = int( page.xpath('text()')[0].encode('utf-8') )
     except:
         pass
 
-    if totalPages < pageNum:
-        totalPages = pageNum
+    if maxPages < pageNum:
+        maxPages = pageNum
 
-print "Total pages: ", totalPages
+if lastPage > maxPages:
+    lastPage = maxPages
+elif lastPage == 0:
+    lastPage = maxPages
 
 # parsing ICO list:
 print "Parsing ICO announcements topics list"
 
-print "Parsing topics from page ", currentPage, " to page ", totalPages
+print "Parsing topics from page ", currentPage, " to page ", lastPage
 icoList = {}
 
 while True:
-    if currentPage > totalPages:
+    if currentPage > lastPage:
         break
 
     if currentPage % 10 == TIMEOUT_NUM:
@@ -535,7 +537,7 @@ while True:
         parseIcoList(url,headers,1,'',icoList)
         #icoList.update(newIcoList)
 
-    percent = 100.0 * currentPage / totalPages
+    percent = 100.0 * currentPage / lastPage
     print "Completed %3.1f%%" % percent
 
     currentPage += 1
