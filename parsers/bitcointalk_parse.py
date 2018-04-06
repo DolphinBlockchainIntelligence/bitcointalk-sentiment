@@ -26,6 +26,7 @@ verboseMode = False
 browserMode = False
 display = Display(visible=0, size=(1024, 768))
 display.start()
+browser = webdriver.Firefox()
 
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
@@ -105,7 +106,6 @@ def requestURL(callPoint, url):
     while True:
         try:
             if browserMode:
-                browser = webdriver.Firefox()
                 browser.get(url)
                 rtext = browser.page_source
                 rstatus_code = 200
