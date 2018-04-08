@@ -100,7 +100,7 @@ def readProxyList():
         
 # globals for requestURL(...)
 def requestURL(callPoint, url):
-    global verboseMode, browserMode
+    global verboseMode, browserMode, browser
     
     time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
     while True:
@@ -165,6 +165,10 @@ def requestURL(callPoint, url):
                 print 'Error:', e.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
             time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+            del browser
+            gc.collect()
+            browser = webdriver.Firefox()
+            print "Browser reset done"
             rotateProxy()
     
     rotateProxy(failed=False)
