@@ -97,10 +97,18 @@ def readProxyList():
         pass
         
     print "# of proxies read: ", len(proxies)
-        
+
+def resetBrowser():
+    global browser
+    if browserMode:
+        del browser
+        gc.collect()
+        browser = webdriver.Firefox()
+        print "Browser reset done"
+     
 # globals for requestURL(...)
 def requestURL(callPoint, url):
-    global verboseMode, browserMode, browser
+    global verboseMode, browserMode
     
     time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
     while True:
@@ -121,6 +129,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print callPoint, ': response: ', rstatus_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                resetBrowser()
                 rotateProxy()
                 continue
             elif rtext.find('<h1>Busy, try again (502)</h1>') != -1:
@@ -129,6 +138,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                resetBrowser()
                 rotateProxy()
                 continue
             elif rtext.find('<head><title>500 Internal Server Error</title></head>') != -1:
@@ -139,6 +149,7 @@ def requestURL(callPoint, url):
                 f.write(rtext)
                 f.close()
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                resetBrowser()
                 rotateProxy(failed=False)
                 continue
             elif rtext.find('Sorry, SMF was unable to connect to the database') != -1:
@@ -146,6 +157,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY * 10 + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                resetBrowser()
                 rotateProxy(failed=False)
                 continue
             elif rstatus_code != 200:
@@ -154,6 +166,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print callPoint, ': response: ', rstatus_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                resetBrowser()
                 rotateProxy()
                 continue
             else:
@@ -165,10 +178,7 @@ def requestURL(callPoint, url):
                 print 'Error:', e.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
                 print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
             time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
-            del browser
-            gc.collect()
-            browser = webdriver.Firefox()
-            print "Browser reset done"
+            resetBrowser()
             rotateProxy()
     
     rotateProxy(failed=False)
@@ -389,6 +399,7 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, fi
         f = open("error_page.dmp", "w")
         f.write(text)
         f.close()
+        # "The topic or board you are looking for appears to be either missing or off limits to you."        
         raise
 
     # number of posts
