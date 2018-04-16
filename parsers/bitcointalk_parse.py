@@ -99,12 +99,15 @@ def readProxyList():
     print "# of proxies read: ", len(proxies)
 
 def resetBrowser():
-    global browser
+    global browser, browserMode
+    print "Browser reset requested"
     if browserMode:
         del browser
         gc.collect()
         browser = webdriver.Firefox()
         print "Browser reset done"
+    else:
+        print "Operating mode doesn't mean using headless browser. Requst cancelled"
      
 # globals for requestURL(...)
 def requestURL(callPoint, url):
