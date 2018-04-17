@@ -117,11 +117,15 @@ def requestURL(callPoint, url):
     while True:
         try:
             if browserMode:
+                if verboseMode:
+                    print "Requesting html with headless browser"
                 browser.get(url)
                 rtext = browser.page_source
                 rstatus_code = 200
                 
             else:
+                if verboseMode:
+                    print "Requesting html with 'requests'"                
                 r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
                 rtext = r.text
                 rstatus_code = r.status_code
