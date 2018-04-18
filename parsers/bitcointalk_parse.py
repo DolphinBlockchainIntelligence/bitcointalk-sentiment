@@ -504,7 +504,8 @@ try:
         elif optName == '-v':
             verboseMode = True
         elif optName == '-b':
-            browserMode = True        
+            print "Using headless browser mode"
+            browserMode = True      
 
 except getopt.GetoptError as e:
     print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>] [-v (switch verbose mode on)]'
