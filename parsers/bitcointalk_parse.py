@@ -193,46 +193,14 @@ def requestURL(callPoint, url):
     return rtext
 
 
-def parseIcoList(url,headers,skipLines,treeIn,icoList):
+def parseIcoList(url,headers,skipLines,treeIn,textIn,icoList):
 
     if treeIn == "":
-        '''
-        time.sleep(PARSING_SLEEP)
-        while True:
-            try:
-                
-                r = requests.get(url, headers = headers, proxies = proxy)
-                if r.text.find('Busy, try again (504)') != -1:
-                    print 'parseIcoList: Response: ', r.status_code, ', Error "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                    time.sleep(TIMEOUT_RETRY)
-                    rotateProxy()
-                    continue
-                elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
-                    print 'parseIcoList: Response: ', r.status_code, ', Error: "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                    time.sleep(TIMEOUT_RETRY)
-                    rotateProxy()
-                    continue
-                elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
-                    print 'parseIcoList: Response: ', r.status_code, ', Error: "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                    print "response: ", r.text
-                    f = open("error_page_500.dmp", "w")
-                    f.write(r.text)
-                    f.close()
-                    time.sleep(TIMEOUT_RETRY)
-                    rotateProxy()
-                    continue
-                else:
-                    break
-            except exceptions.BaseException as e:
-                # print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                print 'parseIcoList: Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY)
-                rotateProxy()
-        '''
         text = requestURL('parseIcoList', url)
         tree = html.fromstring(text)
     else:
         tree = treeIn
+        text = textIn
 
     parserHtml = HTMLParser()
 
@@ -316,7 +284,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
 
     # get first page of topic posts
     userNameAndUrl = {}
-    parseTopicPagePosts(topicID, topicURL, headers, 1, ttree, topicPosts, userNameAndUrl)
+    parseTopicPagePosts(topicID, topicURL, headers, 1, ttree, text, topicPosts, userNameAndUrl)
     firstPageTopicPostsNum = len(topicPosts)
     starterUserNameAndUrl["topicStarterUrl"] = userNameAndUrl["topicStarterUrl"]
     starterUserNameAndUrl["topicStarter"]    = userNameAndUrl["topicStarter"]
@@ -327,7 +295,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
         if tCurrentPage != 0:
             tUrlTail = tCurrentPage*TOPICS_PER_PAGE
             tUrl = urlTopicTemplate + str(topicID) + '.' + str(tUrlTail)
-            parseTopicPagePosts(topicID, tUrl, headers, 1, '', topicPosts, userNameAndUrl)
+            parseTopicPagePosts(topicID, tUrl, headers, 1, '', '', topicPosts, userNameAndUrl)
             starterUserNameAndUrl["NumReplies"] = ( tTotalPages - 2) * TOPICS_PER_PAGE + len(topicPosts)
         else:
             starterUserNameAndUrl["NumReplies"] = len(topicPosts)
@@ -342,7 +310,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
             tUrl = urlTopicTemplate + str(topicID) + '.' + str(tUrlTail)
             tCurrentPage += 1
 
-            parseTopicPagePosts(topicID,tUrl,headers,1,'',topicPosts, userNameAndUrl)
+            parseTopicPagePosts(topicID,tUrl,headers,1,'','',topicPosts, userNameAndUrl)
 
             percent = 100.0 * tCurrentPage / tTotalPages
             print "Completed %3.1f%%" % percent
@@ -353,48 +321,15 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
 
 #####################################################
 
-def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, topicPosts, firstPostUserNameAndUrl):
+def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, textIn, topicPosts, firstPostUserNameAndUrl):
 
     if treeIn == "":
-        '''
-        time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
-        #r = requests.get(url, headers = headers)
-        while True:
-            try:
-                dateTimeOfRequest = localtime()
-                r = requests.get(url, headers = headers, proxies = proxy)
-                if r.text.find('Busy, try again (504)') != -1:
-                    print 'parseTopicPagePosts: Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                    time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
-                    rotateProxy()
-                    continue
-                elif r.text.find('<h1>Busy, try again (502)</h1>') != -1:
-                    print 'parseTopicPagePosts: Error: "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                    time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
-                    rotateProxy()
-                    continue
-                elif r.text.find('<head><title>500 Internal Server Error</title></head>') != -1:
-                    print 'ParseTopicPagePosts: Error: "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                    print "response: ", r.text
-                    f = open("error_page_500.dmp", "w")
-                    f.write(r.text)
-                    f.close()
-                    time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
-                    rotateProxy()
-                    continue
-                else:
-                    break
-            except exceptions.BaseException as e:
-                # print 'Error:', exception.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                print 'parseTopicPagePosts: Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
-                rotateProxy()
-        '''
         dateTimeOfRequest = localtime()
         text = requestURL('parseTopicPagePosts', url)
         tree = html.fromstring(text)
     else:
         tree = treeIn
+        text = textIn
 
     parserHtml = HTMLParser()
 
@@ -555,9 +490,9 @@ while True:
     if currentPage == 1:
         # get first page ICO list
         # reuse html tree from step "count num of pages"
-        parseIcoList('',headers,6,tree,icoList)
+        parseIcoList('',headers,6,tree,text,icoList)
     else:
-        parseIcoList(url,headers,1,'',icoList)
+        parseIcoList(url,headers,1,'','',icoList)
         #icoList.update(newIcoList)
 
     percent = 100.0 * currentPage / lastPage
@@ -702,7 +637,7 @@ for ico in icoList:
     for icoTopicPage in range(numPagesOld, numPagesNew+1):    
         tUrlTail = icoTopicPage*TOPICS_PER_PAGE
         tUrl = urlTopicTemplate + ico + '.' + str(tUrlTail)
-        parseTopicPagePosts(ico, tUrl, headers, 1, '', topicPosts, userNameAndUrl)
+        parseTopicPagePosts(ico, tUrl, headers, 1, '', '', topicPosts, userNameAndUrl)
         icoChangedPagesCurr += 1
 
         # save posts each PARSED_PAGES_SAVE_POSTS pages
