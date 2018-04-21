@@ -1,5 +1,5 @@
 #reload(sys) sys.setdefaultencoding('utf-8')
-import sys, requests, pandas, json, re, time, csv, math, exceptions, gc, getopt, furl, random
+import sys, requests, json, re, time, csv, math, exceptions, gc, getopt, furl, random
 from lxml import html, etree
 from HTMLParser import HTMLParser
 from time import gmtime, strftime, localtime
@@ -491,12 +491,12 @@ onlyOneTopicId = "0"
 
 # read command line params if specified
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "s:n:t:d:v:")
+    opts, args = getopt.getopt(sys.argv[1:], "s:n:t:d:vb")
     for optName, optValue in opts:
         if optName == '-s':
-            currentPage = int( optValue )
+            currentPage = int(optValue)
         elif optName == '-n':
-            lastPage = int( optValue )
+            lastPage = int(optValue)
         elif optName == '-t':
             onlyOneTopicId  = optValue
         elif optName == '-d':
@@ -508,7 +508,7 @@ try:
             browserMode = True      
 
 except getopt.GetoptError as e:
-    print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>] [-v (switch verbose mode on)]'
+    print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>] [-v (switch verbose mode on)] [-b (use headless firefox)]'
     sys.exit(1)
 
 
