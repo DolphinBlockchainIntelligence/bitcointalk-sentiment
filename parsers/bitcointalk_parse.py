@@ -153,7 +153,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print callPoint, ': response: ', rstatus_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
                 f = open("error_page_500.dmp", "w")
-                f.write(rtext)
+                f.write(rtext.encode('utf-8'))
                 f.close()
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
@@ -211,7 +211,7 @@ def parseIcoList(url,headers,skipLines,treeIn,textIn,icoList):
         print >> sys.stderr, "Exception parsing ICO list, url: ", url
         print >> sys.stderr, "Exception: %s (dumped to error_page.dmp" % str(e)
         f = open("error_page.dmp", "w")
-        f.write(text)
+        f.write(text.encode('utf-8'))
         f.close()
         raise
 
@@ -339,7 +339,7 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, textIn, topicP
         print >> sys.stderr, "Exception parsing topic page posts, url: ", url
         print >> sys.stderr, "Exception: %s" % str(e)
         f = open("error_page.dmp", "w")
-        f.write(text)
+        f.write(text.encode('utf-8'))
         f.close()
         # "The topic or board you are looking for appears to be either missing or off limits to you."        
         raise
