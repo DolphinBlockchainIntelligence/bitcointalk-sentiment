@@ -162,11 +162,19 @@ def requestURL(callPoint, url):
             elif rtext.find('Sorry, SMF was unable to connect to the database') != -1:
                 print "Forum failed, need to take a timeout"
                 if verboseMode:
-                    print callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY * 10 + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                    print callPoint, ': response: ', rstatus_code, ', "SMF was unable to connect to the database" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
+            elif rtext.find('<span class="cf-error-code">520</span>') != -1:
+                print "Forum failed, need to take a timeout"
+                if verboseMode:
+                    print callPoint, ': response: ', rstatus_code, ', "520: Web server is returning an unknown error" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                resetBrowser()
+                rotateProxy(failed=False)
+                continue                
             elif rstatus_code != 200:
                 if proxy:
                     print "proxy failed:  ", proxy['https']
