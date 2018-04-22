@@ -174,7 +174,15 @@ def requestURL(callPoint, url):
                 time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy(failed=False)
-                continue                
+                continue            
+            elif rtext.find('<span class="cf-error-code">522</span>') != -1:
+                print "Forum failed, need to take a timeout"
+                if verboseMode:
+                    print callPoint, ': response: ', rstatus_code, ', "522: Connection timed out" retrying connection in ', TIMEOUT_RETRY , ' sec.'
+                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                resetBrowser()
+                rotateProxy(failed=False)
+                continue 
             elif rstatus_code != 200:
                 if proxy:
                     print "proxy failed:  ", proxy['https']
