@@ -102,7 +102,8 @@ def resetBrowser():
     global browser, browserMode
     print "Browser reset requested"
     if browserMode:
-        del browser
+        #del browser
+        browser = None
         gc.collect()
         browser = webdriver.Firefox()
         print "Browser reset done"
