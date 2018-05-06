@@ -24,9 +24,8 @@ PROXY_TIMEOUT            = 7
 # globals:
 verboseMode = False
 browserMode = False
-display = Display(visible=0, size=(1024, 768))
-display.start()
-browser = webdriver.Firefox()
+display = None
+browser = None
 
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
@@ -103,9 +102,20 @@ def resetBrowser():
     print "Browser reset requested"
     if browserMode:
         #del browser
+        browser.quit()
         browser = None
         gc.collect()
-        browser = webdriver.Firefox()
+        try:
+            browser = webdriver.Firefox()
+        except exceptions.BaseException as e:
+            display.popen.kill()
+            print 'Error at resetting web browser:', e.__class__.__name__, ', ': Exception:' , e.message
+            sys.exit(2)
+        
+        # browser.delete_all_cookies()
+        # https://stackoverflow.com/questions/46361494/how-to-get-the-localstorage-with-python-and-selenium-webdriver
+        # browser.execute_script("window.localStorage.clear();")
+        
         print "Browser reset done"
     else:
         print "Operating mode doesn't mean using headless browser. Requst cancelled"
@@ -458,6 +468,10 @@ except getopt.GetoptError as e:
     print sys.argv[0], ' [-s <start page>] [-n <num pages>] [-t <topic id>] [-d <datadir>] [-v (switch verbose mode on)] [-b (use headless firefox)]'
     sys.exit(1)
 
+display = Display(visible=0, size=(1024, 768))
+display.start()
+# about profile see https://stackoverflow.com/questions/46529761/python-selenium-clearing-cache-and-cookies
+browser = webdriver.Firefox()
 
 readProxyList()
 rotateProxy(failed=False)
@@ -688,6 +702,9 @@ for ico in icoList:
     print "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"
     icoListCurr += 1
 
+
+browser.quit()
+display.popen.kill()
 
 #with open('announceListCurrent.json', 'w') as fp:
     #json.dump(icoList, fp)
