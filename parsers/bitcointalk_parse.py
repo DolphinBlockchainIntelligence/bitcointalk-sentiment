@@ -109,7 +109,7 @@ def resetBrowser():
             browser = webdriver.Firefox()
         except exceptions.BaseException as e:
             display.popen.kill()
-            print 'Error at resetting web browser:', e.__class__.__name__, ', ': Exception:' , e.message
+            print 'Error at resetting web browser:', e.__class__.__name__, ', Exception:', e.message
             sys.exit(2)
         
         # browser.delete_all_cookies()
