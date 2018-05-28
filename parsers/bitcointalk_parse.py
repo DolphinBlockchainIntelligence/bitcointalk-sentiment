@@ -26,6 +26,7 @@ verboseMode = False
 browserMode = False
 display = None
 browser = None
+timeLastSuccessAccess = 0
 
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
@@ -100,6 +101,12 @@ def readProxyList():
 def resetBrowser():
     global browser, browserMode
     print "Browser reset requested"
+    if timeLastSuccessAccess == 0:
+        print "No success access registered" 
+    else:
+        sinceLastSuccessAccess = time.strftime("%d days %H:%M:%S", time.gmtime(time.time() - timeLastSuccessAccess))
+        print "Time passed since last success access:", sinceLastSuccessAccess
+    
     if browserMode:
         #del browser
         browser.quit()
@@ -211,7 +218,8 @@ def requestURL(callPoint, url):
             rotateProxy()
     
     rotateProxy(failed=False)
-    print "URL request success" 
+    timeLastSuccessAccess = time.time()
+    print "URL request success"
     return rtext
 
 
