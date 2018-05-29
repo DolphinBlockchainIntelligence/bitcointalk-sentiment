@@ -100,6 +100,7 @@ def readProxyList():
 
 def resetBrowser():
     global browser, browserMode
+    
     print "Browser reset requested"
     if timeLastSuccessAccess == 0:
         print "No success access registered" 
@@ -129,7 +130,7 @@ def resetBrowser():
      
 # globals for requestURL(...)
 def requestURL(callPoint, url):
-    global verboseMode, browserMode
+    global verboseMode, browserMode, timeLastSuccessAccess
     
     time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
     while True:
