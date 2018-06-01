@@ -12,8 +12,9 @@ PARSING_SLEEP            = 20    # 20
 PARSING_SLEEP_RAND_RANGE = 8     # 8    should be no greater than PARSING_SLEEP
 TIMEOUT_SLEEP            = 20    # 20
 TIMEOUT_NUM              = 5     #
-TIMEOUT_RETRY            = 1200  # 600
+TIMEOUT_RETRY            = 600   # 600
 TIMEOUT_RAND_RANGE       = 20    # 20   should be no greater than TIMEOUT_RETRY
+TIMEOUT_RETRY_INCREASE   = 600   # 600
 FIRST_LAST_ONLY          = True
 FULL_TOPIC_POSTS         = False
 DATA_FILES_DIR           = "../data/"
@@ -27,6 +28,7 @@ browserMode = False
 display = None
 browser = None
 timeLastSuccessAccess = 0
+timeoutRetry = 0
 
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
@@ -56,20 +58,20 @@ def rotateProxy(failed=True):
             proxy_cur = 0
             proxy_rotations += 1
             if proxy_rotations >= proxy_rotations_old + 2:
-                print "No working proxies anymore, reread file with proxies and reset status"
+                print logTime(), "No working proxies anymore, reread file with proxies and reset status"
                 proxy_cur = 0                
                 proxy_rotations = 1
                 readProxyList()
                 rotateProxy(failed=False)                
                 
         if proxies[proxy_cur]["failed"] > 1:
-            print "Proxy ", proxies[proxy_cur]["proxy"], " failed - no more use it"
+            print logTime(), "Proxy ", proxies[proxy_cur]["proxy"], " failed - no more use it"
             continue
         else:
             proxy = { 'https': proxies[proxy_cur]["proxy"] }
             break
 
-    print "proxy rotated: ", proxies[proxy_cur]["proxy"]
+    print logTime(), "proxy rotated: ", proxies[proxy_cur]["proxy"]
     
     #if proxy_rotations % 5 == 0:
     #    readProxyList()
@@ -96,17 +98,17 @@ def readProxyList():
     except exceptions.BaseException as e:
         pass
         
-    print "# of proxies read: ", len(proxies)
+    print logTime(), "# of proxies read: ", len(proxies)
 
 def resetBrowser():
     global browser, browserMode
     
-    print "Browser reset requested"
+    print logTime(), "Browser reset requested"
     if timeLastSuccessAccess == 0:
-        print "No success access registered" 
+        print logTime(), "No success access registered" 
     else:
         sinceLastSuccessAccess = time.strftime("%d days %H:%M:%S", time.gmtime(time.time() - timeLastSuccessAccess))
-        print "Time passed since last success access:", sinceLastSuccessAccess
+        print logTime(), "Time passed since last success access:", sinceLastSuccessAccess
     
     if browserMode:
         #del browser
@@ -117,17 +119,24 @@ def resetBrowser():
             browser = webdriver.Firefox()
         except exceptions.BaseException as e:
             display.popen.kill()
-            print 'Error at resetting web browser:', e.__class__.__name__, ', Exception:', e.message
+            print logTime(), 'Error at resetting web browser:', e.__class__.__name__, ', Exception:', e.message
             sys.exit(2)
         
         # browser.delete_all_cookies()
         # https://stackoverflow.com/questions/46361494/how-to-get-the-localstorage-with-python-and-selenium-webdriver
         # browser.execute_script("window.localStorage.clear();")
         
-        print "Browser reset done"
+        print logTime(), "Browser reset done"
     else:
-        print "Operating mode doesn't mean using headless browser. Requst cancelled"
-     
+        print logTime(), "Operating mode doesn't mean using headless browser. Requst cancelled"
+
+def increaseTimeoutRetry():
+    global timeoutRetry
+    timeoutRetry += TIMEOUT_RETRY_INCREASE
+    
+def logTime():
+    return '[' + time.strftime("%H:%M:%S", time.localtime()) + ']'
+
 # globals for requestURL(...)
 def requestURL(callPoint, url):
     global verboseMode, browserMode, timeLastSuccessAccess
@@ -137,72 +146,79 @@ def requestURL(callPoint, url):
         try:
             if browserMode:
                 if verboseMode:
-                    print "Requesting html with headless browser"
+                    print logTime(), "Requesting html with headless browser"
                 browser.get(url)
                 rtext = browser.page_source
                 rstatus_code = 200
                 
             else:
                 if verboseMode:
-                    print "Requesting html with 'requests'"                
+                    print logTime(), "Requesting html with 'requests'"                
                 r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
                 rtext = r.text
                 rstatus_code = r.status_code
                 
             if rtext.find('Busy, try again (504)') != -1:
                 if proxy:
-                    print "proxy failed:  ", proxy['https']
+                    print logTime(), "proxy failed:  ", proxy['https']
+                
+                increaseTimeoutRetry()
                 if verboseMode:
-                    print callPoint, ': response: ', rstatus_code, ', "Busy, try again (504)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                    print logTime(), callPoint, ': response: ', rstatus_code, ', "Busy, try again (504)" retrying connection in ', timeoutRetry , ' sec.'
+                time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy()
                 continue
             elif rtext.find('<h1>Busy, try again (502)</h1>') != -1:
                 if proxy:
-                    print "proxy failed:  ", proxy['https']
+                    print logTime(), "proxy failed:  ", proxy['https']
+                increaseTimeoutRetry()
                 if verboseMode:
-                    print callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                    print logTime(), callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', timeoutRetry , ' sec.'
+                time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy()
                 continue
             elif rtext.find('<head><title>500 Internal Server Error</title></head>') != -1:
-                print "Forum failed, need to take a timeout"
+                print logTime(), "Forum failed, need to take a timeout"
+                increaseTimeoutRetry()
                 if verboseMode:
-                    print callPoint, ': response: ', rstatus_code, ', "500 Internal Server Error" retrying connection in ', TIMEOUT_RETRY , ' sec. dumped to error_page_500.dmp'
+                    print logTime(), callPoint, ': response: ', rstatus_code, ', "500 Internal Server Error" retrying connection in ', timeoutRetry , ' sec. dumped to error_page_500.dmp'
                 f = open("error_page_500.dmp", "w")
                 f.write(rtext.encode('utf-8'))
                 f.close()
-                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
             elif rtext.find('Sorry, SMF was unable to connect to the database') != -1:
-                print "Forum failed, need to take a timeout"
+                print logTime(), "Forum failed, need to take a timeout"
+                increaseTimeoutRetry()
                 if verboseMode:
-                    print callPoint, ': response: ', rstatus_code, ', "SMF was unable to connect to the database" retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                    print logTime(), callPoint, ': response: ', rstatus_code, ', "SMF was unable to connect to the database" retrying connection in ', timeoutRetry , ' sec.'
+                time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
             elif rtext.find('<span class="cf-error-code">') != -1:
-                print "Forum failed, need to take a timeout"
+                print logTime(), "Forum failed, need to take a timeout"
+                increaseTimeoutRetry()
                 if verboseMode:
                     titleTagOpen = rtext.find('<title>')
                     titleTagClose = rtext.find('</title>')
                     titleText = rtext[titleTagOpen+25:titleTagClose]
-                    print callPoint, ': response: ', rstatus_code, ', "', titleText, '", retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                    print logTime(), callPoint, ': response: ', rstatus_code, ', "', titleText, '", retrying connection in ', timeoutRetry , ' sec.'
+                time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
             elif rstatus_code != 200:
                 if proxy:
-                    print "proxy failed:  ", proxy['https']
+                    print logTime(), "proxy failed:  ", proxy['https']
+                increaseTimeoutRetry()
                 if verboseMode:
-                    print callPoint, ': response: ', rstatus_code, ', retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                    print logTime(), callPoint, ': response: ', rstatus_code, ', retrying connection in ', timeoutRetry , ' sec.'
+                time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
                 resetBrowser()
                 rotateProxy()
                 continue
@@ -210,17 +226,18 @@ def requestURL(callPoint, url):
                 break
         except exceptions.BaseException as e:
             if proxy:
-                print "proxy failed:  ", proxy['https']
+                print logTime(), "proxy failed:  ", proxy['https']
+            increaseTimeoutRetry()
             if verboseMode:
-                print 'Error:', e.__class__.__name__, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-                print callPoint, ': Exception:', e.message, ' retrying connection in ', TIMEOUT_RETRY , ' sec.'
-            time.sleep(TIMEOUT_RETRY + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                print logTime(), 'Error:', e.__class__.__name__, ' retrying connection in ', timeoutRetry , ' sec.'
+                print logTime(), callPoint, ': Exception:', e.message, ' retrying connection in ', timeoutRetry , ' sec.'
+            time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
             resetBrowser()
             rotateProxy()
     
     rotateProxy(failed=False)
     timeLastSuccessAccess = time.time()
-    print "URL request success"
+    print logTime(), "URL request success"
     return rtext
 
 
@@ -239,8 +256,8 @@ def parseIcoList(url,headers,skipLines,treeIn,textIn,icoList):
         table = tree.xpath('//table[@class = "bordercolor"]')[1]
         rows = table.xpath(".//tr")
     except Exception, e:
-        print >> sys.stderr, "Exception parsing ICO list, url: ", url
-        print >> sys.stderr, "Exception: %s (dumped to error_page.dmp" % str(e)
+        print >> sys.stderr, logTime(), "Exception parsing ICO list, url: ", url
+        print >> sys.stderr, logTime(), "Exception: %s (dumped to error_page.dmp" % str(e)
         f = open("error_page.dmp", "w")
         f.write(text.encode('utf-8'))
         f.close()
@@ -344,7 +361,7 @@ def parseTopicPages(topicID, firstLastOnly, topicPosts, starterUserNameAndUrl):
             parseTopicPagePosts(topicID,tUrl,headers,1,'','',topicPosts, userNameAndUrl)
 
             percent = 100.0 * tCurrentPage / tTotalPages
-            print "Completed %3.1f%%" % percent
+            print logTime(), "Completed %3.1f%%" % percent
 
     return
 
@@ -367,8 +384,8 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, textIn, topicP
     try:
         table = tree.xpath('//table[@class = "bordercolor"]')[1]
     except Exception, e:
-        print >> sys.stderr, "Exception parsing topic page posts, url: ", url
-        print >> sys.stderr, "Exception: %s" % str(e)
+        print >> sys.stderr, logTime(), "Exception parsing topic page posts, url: ", url
+        print >> sys.stderr, logTime(), "Exception: %s" % str(e)
         f = open("error_page.dmp", "w")
         f.write(text.encode('utf-8'))
         f.close()
@@ -442,7 +459,7 @@ def parseTopicPagePosts(topicID, url, headers, skipLines, treeIn, textIn, topicP
 try:
     f = open('lockBttParsing.txt', 'w')
 except:
-    print('Another process is working. Exiting.')
+    print logTime(), 'Another process is working. Exiting.'
     sys.exit(1)
 
 
@@ -470,7 +487,7 @@ try:
         elif optName == '-v':
             verboseMode = True
         elif optName == '-b':
-            print "Using headless browser mode"
+            print logTime(), "Using headless browser mode"
             browserMode = True      
 
 except getopt.GetoptError as e:
@@ -507,9 +524,9 @@ elif lastPage == 0:
     lastPage = maxPages
 
 # parsing ICO list:
-print "Parsing ICO announcements topics list"
+print logTime(), "Parsing ICO announcements topics list"
 
-print "Parsing topics from page ", currentPage, " to page ", lastPage
+print logTime(), "Parsing topics from page ", currentPage, " to page ", lastPage
 icoList = {}
 
 while True:
@@ -531,11 +548,11 @@ while True:
         #icoList.update(newIcoList)
 
     percent = 100.0 * currentPage / lastPage
-    print "Completed %3.1f%%" % percent
+    print logTime(), "Completed %3.1f%%" % percent
 
     currentPage += 1
 
-print "Parsing ICO posts"
+print logTime(), "Parsing ICO posts"
 
 # http://www.developersite.org/102-103188-python
 # http://jsonviewer.stack.hu/
@@ -557,7 +574,7 @@ try:
     with open(dataDirPath + 'assetList.json', 'r') as fAssetList:
         assetList = json.load(fAssetList)
     fAssetList.close
-    print "  adding assets from assetList.json items", len(assetList), "to topics list"
+    print logTime(), "  adding assets from assetList.json items", len(assetList), "to topics list"
 except:
     assetList = {}
 
@@ -569,13 +586,13 @@ for asset in assetList:
            link["linkUrl"].find('bitcointalk.org') != -1 and \
            assetList[asset]["rank"] < TOP_CMC_ITEMS:
 
-            print "  adding", asset 
+            print logTime(), "  adding", asset 
             if link["linkUrl"][-2:] == '.0':
                 try:
                     bttTopicIdUni = re.search('topic=(.+?)\.0', link["linkUrl"]).group(1)
                     bttTopicId = bttTopicIdUni.encode('ascii','ignore')
                 except:
-                    print "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
+                    print logTime(), "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
                     continue
             else:
                 f = furl.furl(link["linkUrl"])
@@ -583,7 +600,7 @@ for asset in assetList:
                     bttTopicIdUni = f.args["topic"]
                     bttTopicId = bttTopicIdUni.encode('ascii','ignore')
                 except:
-                    print "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
+                    print logTime(), "Asset (", asset, ") : cannot retrieve topic id from URL:", link["linkUrl"]
                     continue
 
             if bttTopicId not in icoList.keys():
@@ -616,7 +633,7 @@ for asset in assetList:
 
                     del assetTopicPosts
 
-print "Number of items was added:", len(icoList) - itemsBeforeAdding
+print logTime(), "Number of items was added:", len(icoList) - itemsBeforeAdding
 
 # print icoList
 # sys.exit(1)
@@ -652,9 +669,9 @@ for ico in icoList:
         numRepliesNew = 0
 
     if numRepliesNew == numRepliesOld:
-        print "For topic ", ico ," no changes"
+        print logTime(), "For topic ", ico ," no changes"
         percent = 100.0 * icoListCurr / icoListNum
-        print "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"
+        print logTime(), "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"
         icoListCurr += 1
         continue
 
@@ -664,7 +681,7 @@ for ico in icoList:
     if numPagesOld > numPagesNew: 
         numPagesOld = numPagesNew
 
-    print "For", icoList[ico]["announce"], "(", ico, ")" ," need to parse pages from", numPagesOld+1, ' to ', numPagesNew+1
+    print logTime(), "For", icoList[ico]["announce"], "(", ico, ")" ," need to parse pages from", numPagesOld+1, ' to ', numPagesNew+1
 
     topicParsingDT = strftime("%Y-%m-%d %H:%M", localtime())
     icoChangedPagesNum = numPagesNew - numPagesOld + 1
@@ -685,7 +702,7 @@ for ico in icoList:
 
         # print progress info  
         percent = 100.0 * icoChangedPagesCurr / icoChangedPagesNum
-        print "  topic ", ico, " parsing completion %3.1f%%" % percent, postsSavedFlag
+        print logTime(), "  topic ", ico, " parsing completion %3.1f%%" % percent, postsSavedFlag
 
     with open(dataDirPath + ico + '.json', 'w') as fTopicPosts:
         json.dump(topicPosts, fTopicPosts, sort_keys=True, indent=4)
@@ -708,7 +725,7 @@ for ico in icoList:
     fAnnounceList.close
 
     percent = 100.0 * icoListCurr / icoListNum
-    print "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"
+    print logTime(), "ICO list parsing completion %3.1f%%" % percent, "(", icoListCurr, " of ", icoListNum, ")"
     icoListCurr += 1
 
 
