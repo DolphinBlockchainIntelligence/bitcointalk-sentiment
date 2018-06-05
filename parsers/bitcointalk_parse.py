@@ -137,11 +137,19 @@ def increaseTimeoutRetry():
 def logTime():
     return '[' + time.strftime("%H:%M:%S", time.localtime()) + ']'
 
+def obfuscatingRequest(callPoint):
+    requestURL(callPoint, urlStart, obfuscatingRequest=true)
+
 # globals for requestURL(...)
-def requestURL(callPoint, url):
+def requestURL(callPoint, url, obfuscatingRequest=false):
     global verboseMode, browserMode, timeLastSuccessAccess
     
-    time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
+    if obfuscatingRequest:
+        if verboseMode:
+            print logTime(), callPoint, ': obfuscating request'                
+    else:
+        time.sleep(PARSING_SLEEP + random.randrange(-PARSING_SLEEP_RAND_RANGE,PARSING_SLEEP_RAND_RANGE,1))
+    
     while True:
         try:
             if browserMode:
@@ -157,6 +165,9 @@ def requestURL(callPoint, url):
                 r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
                 rtext = r.text
                 rstatus_code = r.status_code
+            
+            if obfuscatingRequest:
+                return ""
                 
             if rtext.find('Busy, try again (504)') != -1:
                 if proxy:
@@ -166,6 +177,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print logTime(), callPoint, ': response: ', rstatus_code, ', "Busy, try again (504)" retrying connection in ', timeoutRetry , ' sec.'
                 time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                obfuscatingRequest(callPoint)
                 resetBrowser()
                 rotateProxy()
                 continue
@@ -176,6 +188,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print logTime(), callPoint, ': response: ', rstatus_code, ', "Busy, try again (502)" retrying connection in ', timeoutRetry , ' sec.'
                 time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                obfuscatingRequest(callPoint)
                 resetBrowser()
                 rotateProxy()
                 continue
@@ -188,6 +201,7 @@ def requestURL(callPoint, url):
                 f.write(rtext.encode('utf-8'))
                 f.close()
                 time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                obfuscatingRequest(callPoint)
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
@@ -197,6 +211,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print logTime(), callPoint, ': response: ', rstatus_code, ', "SMF was unable to connect to the database" retrying connection in ', timeoutRetry , ' sec.'
                 time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                obfuscatingRequest(callPoint)
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
@@ -209,6 +224,7 @@ def requestURL(callPoint, url):
                     titleText = rtext[titleTagOpen+25:titleTagClose]
                     print logTime(), callPoint, ': response: ', rstatus_code, ', "', titleText, '", retrying connection in ', timeoutRetry , ' sec.'
                 time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                obfuscatingRequest(callPoint)
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
@@ -219,6 +235,7 @@ def requestURL(callPoint, url):
                 if verboseMode:
                     print logTime(), callPoint, ': response: ', rstatus_code, ', retrying connection in ', timeoutRetry , ' sec.'
                 time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                obfuscatingRequest(callPoint)
                 resetBrowser()
                 rotateProxy()
                 continue
@@ -232,8 +249,10 @@ def requestURL(callPoint, url):
                 print logTime(), 'Error:', e.__class__.__name__, ' retrying connection in ', timeoutRetry , ' sec.'
                 print logTime(), callPoint, ': Exception:', e.message, ' retrying connection in ', timeoutRetry , ' sec.'
             time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+            obfuscatingRequest(callPoint)
             resetBrowser()
             rotateProxy()
+            continue
     
     rotateProxy(failed=False)
     timeLastSuccessAccess = time.time()
