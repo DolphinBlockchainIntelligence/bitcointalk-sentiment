@@ -141,7 +141,7 @@ def obfuscatingRequest(callPoint):
     requestURL(callPoint, urlStart, obfuscatingRequest=true)
 
 # globals for requestURL(...)
-def requestURL(callPoint, url, obfuscatingRequest=false):
+def requestURL(callPoint, url, obfuscatingRequest=False):
     global verboseMode, browserMode, timeLastSuccessAccess
     
     if obfuscatingRequest:
