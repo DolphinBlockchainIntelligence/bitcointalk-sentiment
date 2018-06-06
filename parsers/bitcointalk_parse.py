@@ -215,6 +215,17 @@ def requestURL(callPoint, url, obfuscatingRequest=False):
                 resetBrowser()
                 rotateProxy(failed=False)
                 continue
+            elif rtext.find('missing or off limits to you') != -1:
+                print logTime(), "Forum failed, need to take a timeout"
+                increaseTimeoutRetry()
+                if verboseMode:
+                    print url
+                    print logTime(), callPoint, ': response: ', rstatus_code, ', "The topic or board is missing or off limits to you" retrying connection in ', timeoutRetry , ' sec.'
+                time.sleep(timeoutRetry + random.randrange(-TIMEOUT_RAND_RANGE,TIMEOUT_RAND_RANGE,1))
+                obfuscatingRequest(callPoint)
+                resetBrowser()
+                rotateProxy(failed=False)
+                continue
             elif rtext.find('<span class="cf-error-code">') != -1:
                 print logTime(), "Forum failed, need to take a timeout"
                 increaseTimeoutRetry()
