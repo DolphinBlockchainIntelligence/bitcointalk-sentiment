@@ -138,13 +138,13 @@ def logTime():
     return '[' + time.strftime("%H:%M:%S", time.localtime()) + ']'
 
 def obfuscatingRequest(callPoint):
-    requestURL(callPoint, urlStart, obfuscatingRequest=true)
+    requestURL(callPoint, urlStart, isObfuscatingRequest=true)
 
 # globals for requestURL(...)
-def requestURL(callPoint, url, obfuscatingRequest=False):
+def requestURL(callPoint, url, isObfuscatingRequest=False):
     global verboseMode, browserMode, timeLastSuccessAccess
     
-    if obfuscatingRequest:
+    if isObfuscatingRequest:
         if verboseMode:
             print logTime(), callPoint, ': obfuscating request'                
     else:
@@ -166,7 +166,7 @@ def requestURL(callPoint, url, obfuscatingRequest=False):
                 rtext = r.text
                 rstatus_code = r.status_code
             
-            if obfuscatingRequest:
+            if isObfuscatingRequest:
                 return ""
                 
             if rtext.find('Busy, try again (504)') != -1:
