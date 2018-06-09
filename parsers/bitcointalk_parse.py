@@ -138,7 +138,7 @@ def logTime():
     return '[' + time.strftime("%H:%M:%S", time.localtime()) + ']'
 
 def obfuscatingRequest(callPoint):
-    requestURL(callPoint, urlStart, isObfuscatingRequest=true)
+    requestURL(callPoint, urlStart, isObfuscatingRequest=True)
 
 # globals for requestURL(...)
 def requestURL(callPoint, url, isObfuscatingRequest=False):
