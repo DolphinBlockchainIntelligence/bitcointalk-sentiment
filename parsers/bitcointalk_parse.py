@@ -21,6 +21,7 @@ DATA_FILES_DIR           = "../data/"
 PARSED_PAGES_SAVE_POSTS  = 20
 TOP_CMC_ITEMS            = 400   # top coinmarketcap items to parse
 PROXY_TIMEOUT            = 7
+NUM_REQUESTS_PER_SESSION = 20
 
 # globals:
 verboseMode = False
@@ -29,6 +30,8 @@ display = None
 browser = None
 timeLastSuccessAccess = 0
 timeoutRetry = 0
+numRequests = 0
+lastURL = ""
 
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
@@ -142,7 +145,7 @@ def obfuscatingRequest(callPoint):
 
 # globals for requestURL(...)
 def requestURL(callPoint, url, isObfuscatingRequest=False):
-    global verboseMode, browserMode, timeLastSuccessAccess
+    global verboseMode, browserMode, timeLastSuccessAccess, numRequests, lastURL
     
     if isObfuscatingRequest:
         if verboseMode:
@@ -161,8 +164,20 @@ def requestURL(callPoint, url, isObfuscatingRequest=False):
                 
             else:
                 if verboseMode:
-                    print logTime(), "Requesting html with 'requests'"                
-                r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
+                    print logTime(), "Requesting html with 'requests'"
+             
+                if numRequests == 0 or numRequests > NUM_REQUESTS_PER_SESSION:
+                    if verboseMode:
+                        print logTime(), "Change session"
+                    numRequests = 0
+                    session = requests.Session()
+                
+                numRequests += 1
+                session.headers.update({'referer': lastURL})
+                lastURL = url
+                
+                # r = requests.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
+                r = session.get(url, headers = headers, proxies = proxy, timeout = PROXY_TIMEOUT)
                 rtext = r.text
                 rstatus_code = r.status_code
             
