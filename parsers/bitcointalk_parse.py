@@ -32,6 +32,7 @@ timeLastSuccessAccess = 0
 timeoutRetry = 0
 numRequests = 0
 lastURL = ""
+session = None
 
 # headers = { 'User-Agent': 'Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.1144' }
 headers = { 'User-Agent': 'Yandex/1.01.001 (compatible; Win16; I)' }
@@ -145,7 +146,7 @@ def obfuscatingRequest(callPoint):
 
 # globals for requestURL(...)
 def requestURL(callPoint, url, isObfuscatingRequest=False):
-    global verboseMode, browserMode, timeLastSuccessAccess, numRequests, lastURL
+    global verboseMode, browserMode, timeLastSuccessAccess, numRequests, lastURL, session
     
     if isObfuscatingRequest:
         if verboseMode:
@@ -166,7 +167,7 @@ def requestURL(callPoint, url, isObfuscatingRequest=False):
                 if verboseMode:
                     print logTime(), "Requesting html with 'requests'"
              
-                if numRequests == 0 or numRequests > NUM_REQUESTS_PER_SESSION:
+                if (numRequests == 0) or (numRequests > NUM_REQUESTS_PER_SESSION):
                     if verboseMode:
                         print logTime(), "Change session"
                     numRequests = 0
